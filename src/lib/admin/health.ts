@@ -463,6 +463,37 @@ export async function getHealthChecks(): Promise<Check[]> {
             : "table exists but no pillars yet — run weekly_pillar_refresh",
       };
     }),
+    runCheck(async () => {
+      if (!supabase)
+        return {
+          id: "fts",
+          group: "Database",
+          label: "Full-text search (0007)",
+          level: "fail",
+          detail: "supabase client unavailable",
+        };
+      // Sentinel call: a deliberate non-matching query — exercises the
+      // RPC and the GIN index without returning rows. If the function is
+      // missing the migration hasn't been applied. (Cast bypasses
+      // declared-function-name union check.)
+      const rpc = supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ error: { message: string } | null }>;
+      const { error } = await rpc("search_articles_fts", {
+        q: "techno-times-health-probe-zzz",
+        lim: 1,
+      });
+      return {
+        id: "fts",
+        group: "Database",
+        label: "Full-text search (0007)",
+        level: error ? "fail" : "ok",
+        detail: error
+          ? `RPC missing — apply migration 0007 (${error.message})`
+          : "search_articles_fts RPC responding",
+      };
+    }),
     runCheck(async () => ({
       id: "rate-limit",
       group: "Operations",

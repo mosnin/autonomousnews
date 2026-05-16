@@ -355,5 +355,7 @@ Ingest endpoint: `POST /api/agent/pillars`.
   a human editor could improve placement on top stories.
 - **Cookie consent banner** — explicit v1 choice; disclosure-only privacy
   posture (see `/privacy`).
-- **Postgres FTS / semantic search** — `/search` still uses ILIKE; fine to
-  ~10k articles, plan to migrate before then.
+- **Semantic / vector search** — `/search` runs on Postgres FTS
+  (websearch_to_tsquery + GIN, weighted title/dek/excerpt), which is fine
+  to ~100k articles. A pgvector layer for synonym/intent matching is a
+  future move, not a v1 need.

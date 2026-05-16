@@ -228,6 +228,10 @@ export type Database = {
         Args: { p_article_id: string; p_value: string };
         Returns: undefined;
       };
+      // search_articles_fts / search_pillars_fts: intentionally omitted —
+      // the SSR client's .rpc generic mis-types string-literal function
+      // names in this version, so the call sites cast through a local
+      // narrowed type instead of relying on this declaration.
     };
     Enums: {
       article_status: ArticleStatus;

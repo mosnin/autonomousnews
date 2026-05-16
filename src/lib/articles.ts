@@ -221,16 +221,54 @@ export async function searchArticles(
 ): Promise<ArticleSummary[]> {
   const supabase = await createSupabaseServerClient();
   if (!supabase || !q.trim()) return [];
+
+  // Preferred: Postgres FTS with ts_rank_cd ranking (migration 0007).
+  // The SSR client's .rpc generic mis-types when the function name comes
+  // from a string literal (it collapses Args to never); the runtime call
+  // works fine, so cast to bypass the broken type.
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: unknown }>;
+  const fts = await rpc("search_articles_fts", { q, lim: limit });
+  if (!fts.error && fts.data) {
+    return (fts.data ?? []) as unknown as ArticleSummary[];
+  }
+
+  // Fallback: ILIKE — only fires before migration 0007 is applied.
   const pattern = `%${q.replace(/[%_]/g, "")}%`;
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("articles")
     .select(SUMMARY_COLUMNS)
     .eq("status", "published")
     .or(`title.ilike.${pattern},dek.ilike.${pattern},excerpt.ilike.${pattern}`)
     .order("published_at", { ascending: false })
     .limit(limit);
-  if (error) return [];
   return (data ?? []) as unknown as ArticleSummary[];
+}
+
+// Pillar (topic-guide) search. Returns a small payload — just enough for
+// /search to render a topic-guide row above article results.
+export async function searchPillars(
+  q: string,
+  limit = 5
+): Promise<
+  Array<{ category_slug: string; subcategory_slug: string; title: string; dek: string | null }>
+> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase || !q.trim()) return [];
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: unknown }>;
+  const { data, error } = await rpc("search_pillars_fts", { q, lim: limit });
+  if (error || !data) return [];
+  return data as Array<{
+    category_slug: string;
+    subcategory_slug: string;
+    title: string;
+    dek: string | null;
+  }>;
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
