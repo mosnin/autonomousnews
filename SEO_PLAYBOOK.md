@@ -317,6 +317,11 @@ article grid. They are produced by a separate Modal worker
 (`weekly_pillar_refresh`) that runs every Monday at 08:00 UTC and rewrites
 every one of ~80 pillars in a single run.
 
+Pillars use `gpt-5-mini` (configurable via `PILLAR_MODEL`) rather than the
+news writer's model — evergreen reference content doesn't need the
+breaking-news judgment, and the cheaper model brings the weekly refresh in
+around ~$2–$3 total.
+
 A pillar is the article SEO contract (focus keyword + long-tail keywords
 + power word) plus extra structured sections:
 

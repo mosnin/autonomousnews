@@ -38,6 +38,8 @@ MODEL_PRICING_USD_PER_M = {
     "gpt-4o": {"input": 5.0, "output": 15.0},
     "gpt-4.1-mini": {"input": 0.4, "output": 1.6},
     "gpt-4.1": {"input": 2.0, "output": 8.0},
+    "gpt-5-mini": {"input": 0.25, "output": 2.0},
+    "gpt-5": {"input": 1.25, "output": 10.0},
 }
 DALLE_USD_PER_IMAGE = 0.040  # 1024x1024 standard quality
 

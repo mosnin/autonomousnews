@@ -29,6 +29,10 @@ class Config:
     editor_model: str
     writer_model: str
     image_model: str
+    # Pillar refresh runs weekly across ~80 subcategories — uses a cheaper
+    # model than the breaking-news writer because pillars are evergreen and
+    # don't need the same time-pressure judgment.
+    pillar_model: str
 
     # Output settings
     articles_per_run_min: int
@@ -52,6 +56,7 @@ class Config:
             editor_model=os.environ.get("EDITOR_MODEL", "gpt-4o-mini"),
             writer_model=os.environ.get("WRITER_MODEL", "gpt-4o-mini"),
             image_model=os.environ.get("IMAGE_MODEL", "dall-e-3"),
+            pillar_model=os.environ.get("PILLAR_MODEL", "gpt-5-mini"),
             articles_per_run_min=int(os.environ.get("ARTICLES_MIN", "3")),
             articles_per_run_max=int(os.environ.get("ARTICLES_MAX", "5")),
             evergreen_ratio=float(os.environ.get("EVERGREEN_RATIO", "0.3")),

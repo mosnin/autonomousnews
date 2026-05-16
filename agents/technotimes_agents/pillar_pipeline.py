@@ -121,8 +121,11 @@ Sibling subcategories (use slugs in 'related_subcategories'):
 Return the JSON object described in the system prompt.
 """
     try:
+        # gpt-5 family only accepts the default temperature, so we omit the
+        # temperature kwarg entirely. Evergreen reference content doesn't
+        # need the dial anyway.
         resp = await client.chat.completions.create(
-            model=cfg.writer_model,
+            model=cfg.pillar_model,
             messages=[
                 {
                     "role": "system",
@@ -131,7 +134,6 @@ Return the JSON object described in the system prompt.
                 {"role": "user", "content": user_msg},
             ],
             response_format={"type": "json_object"},
-            temperature=0.5,
         )
     except Exception as e:
         await log.warn("pillar writer call failed", subcategory=sub_slug, error=str(e))
@@ -140,7 +142,7 @@ Return the JSON object described in the system prompt.
     usage = resp.usage
     pt = usage.prompt_tokens if usage else 0
     ct = usage.completion_tokens if usage else 0
-    cost = estimate_cost(cfg.writer_model, pt, ct)
+    cost = estimate_cost(cfg.pillar_model, pt, ct)
 
     try:
         data = json.loads(resp.choices[0].message.content or "{}")
@@ -170,7 +172,7 @@ Return the JSON object described in the system prompt.
         "timeline": data.get("timeline") or [],
         "faq": data.get("faq") or [],
         "related_subcategories": data.get("related_subcategories", []),
-        "model_used": cfg.writer_model,
+        "model_used": cfg.pillar_model,
         "prompt_tokens": pt,
         "completion_tokens": ct,
         "generation_cost_usd": round(cost, 4),
@@ -198,7 +200,7 @@ async def run_pillar_refresh(
             "agent": "pillar-refresh",
             "status": "running",
             "started_at": started_iso,
-            "model": cfg.writer_model,
+            "model": cfg.pillar_model,
         }
     )
     log.set_run_id(run_id)
@@ -294,7 +296,7 @@ async def run_pillar_refresh(
             "topics_considered": (len(targets) if targets is not None else len(all_subcategory_targets())),
             "articles_created": written,
             "cost_usd": round(total_cost, 4),
-            "model": cfg.writer_model,
+            "model": cfg.pillar_model,
             "error": err,
             "metadata": {"agent_kind": "pillar-refresh"},
         }
