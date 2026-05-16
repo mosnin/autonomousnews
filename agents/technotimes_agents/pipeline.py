@@ -524,6 +524,37 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
                         article["image_provider"] = cfg.image_model
                         article["image_is_ai_generated"] = True
 
+                # Persist the cover image to Supabase Storage. DALL·E URLs
+                # expire ~1 hour after generation and news-API thumbnails
+                # rotate, so we re-host every image we plan to display. The
+                # original URL is kept in image_source_url for credit /
+                # provenance.
+                if article["cover_image_url"]:
+                    persisted = await api.persist_image(
+                        article["cover_image_url"],
+                        slug=article.get("slug"),
+                    )
+                    if persisted:
+                        if not article.get("image_source_url"):
+                            article["image_source_url"] = article["cover_image_url"]
+                        article["cover_image_url"] = persisted
+                        await log.info(
+                            "image persisted",
+                            provider=article.get("image_provider"),
+                        )
+                    else:
+                        # Drop the cover rather than ship a URL we expect to
+                        # 404. Hot story without an image > broken image.
+                        await log.warn(
+                            "image persist failed; dropping cover",
+                            title=article["title"],
+                            source_url=article["cover_image_url"],
+                        )
+                        article["cover_image_url"] = None
+                        article["image_credit"] = None
+                        article["image_provider"] = None
+                        article["image_is_ai_generated"] = False
+
                 article["run_id"] = run_id
                 try:
                     result = await api.upsert_article(article)

@@ -83,6 +83,28 @@ class ApiClient:
         )
         r.raise_for_status()
 
+    async def persist_image(
+        self,
+        source_url: str,
+        slug: str | None = None,
+    ) -> str | None:
+        """Download `source_url` and re-host it in Supabase Storage.
+
+        Returns the public CDN URL, or None if the persist fails (so the
+        caller can fall back / skip). Never raises — image persistence
+        should not crash a run."""
+        try:
+            r = await self._client.post(
+                f"{self.base_url}/api/agent/images",
+                json={"source_url": source_url, "slug": slug},
+                timeout=60,
+            )
+            if r.status_code != 200:
+                return None
+            return r.json().get("url")
+        except Exception:
+            return None
+
 
 class LogBuffer:
     """Buffered log emitter that flushes periodically to the API."""
