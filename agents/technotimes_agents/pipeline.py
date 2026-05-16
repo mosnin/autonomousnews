@@ -13,6 +13,7 @@ import time
 import uuid
 from typing import Any
 
+import httpx
 from openai import AsyncOpenAI
 
 from .api_client import ApiClient, LogBuffer
@@ -70,7 +71,7 @@ significance.
 You MUST respond as valid JSON matching the schema the user supplies.
 """
 
-WRITER_SYSTEM = """You are a {author_name}, {author_title} at Techno Times.
+WRITER_SYSTEM = """You are {author_name}, {author_title} at Techno Times.
 
 Write neutral, informative news articles in the house style of a major
 international newspaper (think The New York Times). Always:
@@ -86,6 +87,21 @@ international newspaper (think The New York Times). Always:
   next.
 
 You MUST respond as valid JSON matching the schema the user supplies.
+"""
+
+WRITER_UPDATE_SYSTEM = WRITER_SYSTEM + """
+
+THIS IS AN UPDATE TO AN EXISTING ARTICLE on the same topic. You will be given
+the existing article body. Produce a fully rewritten article that:
+
+- Preserves the story's existing structure where the underlying facts have not
+  changed.
+- Folds the NEW information from the latest source into the lede and the body.
+- Does NOT contradict facts in the existing article unless the new source
+  explicitly overturns them — in which case flag the change.
+- Keeps roughly the same word count.
+- Returns the SAME JSON schema as a fresh article (title, dek, body, etc.).
+  Title and headline may be sharpened to reflect the new information.
 """
 
 
@@ -125,6 +141,7 @@ async def select_topics(
     client: AsyncOpenAI,
     trends: list[Trend],
     n: int,
+    recent_topics: list[dict[str, Any]],
     log: LogBuffer,
 ) -> tuple[list[dict[str, Any]], float, int, int]:
     """Ask the editor agent for N topics with category routing."""
@@ -139,14 +156,31 @@ async def select_topics(
         }
         for i, t in enumerate(trends[:80])
     ]
+    # Truncate the recent-topic context so the editor can reason about
+    # continuations without blowing the context window.
+    recent_compact = [
+        {
+            "topic_key": t.get("topic_key"),
+            "title": t.get("title"),
+            "category": t.get("category_slug"),
+        }
+        for t in recent_topics[:80]
+    ]
 
     user_msg = f"""Pick the {n} most newsworthy items to publish next.
 
 Trending headlines (id + title + 1-line desc):
 {json.dumps(headlines, indent=2)}
 
+Recently-published topics on this site (the same story may be re-trending):
+{json.dumps(recent_compact, indent=2)}
+
 Available categories and subcategories:
 {category_menu_text()}
+
+If a trending headline is clearly a continuation of one of our recent topics,
+set `existing_topic_key` to that exact topic_key so we update the existing
+article in place instead of publishing a duplicate. Otherwise set it to null.
 
 Respond with JSON:
 {{
@@ -157,7 +191,8 @@ Respond with JSON:
       "subcategory_slug": "<exact slug from list or null>",
       "angle": "<one-sentence angle for the article>",
       "is_breaking": <bool>,
-      "is_featured": <bool>
+      "is_featured": <bool>,
+      "existing_topic_key": <string or null>
     }}
   ]
 }}
@@ -199,6 +234,7 @@ Respond with JSON:
             "angle": s.get("angle", ""),
             "is_breaking": bool(s.get("is_breaking", False)),
             "is_featured": bool(s.get("is_featured", False)),
+            "existing_topic_key": s.get("existing_topic_key") or None,
         })
 
     await log.info("editor selected topics", count=len(out), cost_usd=round(cost, 4))
@@ -210,13 +246,55 @@ async def write_article(
     client: AsyncOpenAI,
     selection: dict[str, Any],
     log: LogBuffer,
+    existing: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any] | None, float, int, int]:
     trend: Trend = selection["trend"]
     author: Author = select_author(
         selection["category_slug"], selection["subcategory_slug"]
     )
 
-    user_msg = f"""Write a 1,000–1,500 word news article.
+    if existing:
+        # Living-article update path — anchor the author to whoever already
+        # owns this story so bylines stay stable.
+        author = next(
+            (a for a in (author,) if a.slug == existing.get("author_slug")),
+            author,
+        )
+        existing_body = (existing.get("body") or "")[:6000]
+        user_msg = f"""Update this existing article with newly reported information.
+
+EXISTING ARTICLE (title): {existing.get('title')}
+EXISTING ARTICLE (body, truncated):
+---
+{existing_body}
+---
+
+NEW SOURCE
+Topic: {trend.title}
+Angle: {selection['angle']}
+Source description: {trend.description or '(none)'}
+Source URL: {trend.url or '(none)'}
+Source publication: {trend.source}
+Category: {selection['category_slug']} / {selection['subcategory_slug'] or '(none)'}
+
+Respond with JSON (same schema as a fresh article):
+{{
+  "title": "<headline, may be sharpened, < 100 chars>",
+  "dek": "<one-sentence subheadline, < 200 chars>",
+  "excerpt": "<3-sentence summary>",
+  "body": "<the fully rewritten article incorporating the new information>",
+  "seo_title": "<< 70 chars>",
+  "seo_description": "<< 160 chars>",
+  "seo_keywords": ["<5-10 keywords>"],
+  "tags": ["<topical tags>"],
+  "read_minutes": <int>
+}}
+"""
+        system_msg = WRITER_UPDATE_SYSTEM.format(
+            author_name=author.name, author_title=author.title
+        )
+    else:
+        user_msg = f"""Write a 1,000–1,500 word news article.
 
 Topic: {trend.title}
 Angle: {selection['angle']}
@@ -238,12 +316,14 @@ Respond with JSON:
   "read_minutes": <int estimate>
 }}
 """
+        system_msg = WRITER_SYSTEM.format(
+            author_name=author.name, author_title=author.title
+        )
+
     resp = await client.chat.completions.create(
         model=cfg.writer_model,
         messages=[
-            {"role": "system", "content": WRITER_SYSTEM.format(
-                author_name=author.name, author_title=author.title
-            )},
+            {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
         response_format={"type": "json_object"},
@@ -348,54 +428,130 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
     total_cost = 0.0
     image_cost = 0.0
     articles_created = 0
+    articles_updated = 0
     topics_considered = 0
     err: str | None = None
+    cancelled = False
 
     try:
-        trends = await fetch_trends(cfg, log)
-        topics_considered = len(trends)
-        if not trends:
-            raise RuntimeError("no trends available from any source")
-
-        # Decide how many articles this run, within configured bounds.
-        n = max(cfg.articles_per_run_min, min(cfg.articles_per_run_max, 5))
-
-        client = AsyncOpenAI(api_key=cfg.openai_api_key)
-        selections, editor_cost, _, _ = await select_topics(cfg, client, trends, n, log)
-        total_cost += editor_cost
-
-        for sel in selections:
-            article, w_cost, _, _ = await write_article(cfg, client, sel, log)
-            total_cost += w_cost
-            if article is None:
-                continue
-
-            # Fallback DALL·E image when source had none.
-            if not article["cover_image_url"]:
-                img_url, ic = await generate_fallback_image(
-                    cfg, client, article["title"], log
-                )
-                image_cost += ic
-                if img_url:
-                    article["cover_image_url"] = img_url
-                    article["image_credit"] = "Illustration by Techno Times"
-                    article["image_provider"] = cfg.image_model
-                    article["image_is_ai_generated"] = True
-
-            article["run_id"] = run_id
-            try:
-                aid = await api.insert_article(article)
-                articles_created += 1
-                await log.info("article published", id=aid, title=article["title"])
-            except httpx.HTTPStatusError as e:  # noqa: F821 — imported via api_client side
+        # ---- Budget gate ----------------------------------------------------
+        try:
+            budget = await api.get_budget()
+            await log.info(
+                "budget check",
+                spent_usd=budget.get("spent_usd"),
+                cap_usd=budget.get("cap_usd"),
+                remaining_usd=budget.get("remaining_usd"),
+            )
+            if budget.get("over_budget"):
                 await log.warn(
-                    "article insert failed",
-                    title=article["title"],
-                    status=e.response.status_code,
-                    body=e.response.text[:300],
+                    "over daily budget — cancelling run",
+                    spent_usd=budget.get("spent_usd"),
+                    cap_usd=budget.get("cap_usd"),
                 )
-            except Exception as e:
-                await log.warn("article insert failed", title=article["title"], error=str(e))
+                cancelled = True
+        except Exception as e:
+            # Don't fail-open silently; warn but keep going so a misconfigured
+            # /api/agent/budget never strands the pipeline.
+            await log.warn("budget check failed; proceeding", error=str(e))
+            budget = {"remaining_usd": float("inf")}
+
+        if not cancelled:
+            trends = await fetch_trends(cfg, log)
+            topics_considered = len(trends)
+            if not trends:
+                raise RuntimeError("no trends available from any source")
+
+            n = max(cfg.articles_per_run_min, min(cfg.articles_per_run_max, 5))
+
+            client = AsyncOpenAI(api_key=cfg.openai_api_key)
+            recent = await api.recent_topics(days=7)
+            await log.info("loaded recent topic context", count=len(recent))
+
+            selections, editor_cost, _, _ = await select_topics(
+                cfg, client, trends, n, recent, log
+            )
+            total_cost += editor_cost
+
+            for sel in selections:
+                # Mid-run safety: if we've already spent the remaining budget,
+                # stop before doing more writer or image calls.
+                spent_so_far = total_cost + image_cost
+                remaining = float(budget.get("remaining_usd") or 0.0)
+                if remaining != float("inf") and spent_so_far >= remaining:
+                    await log.warn(
+                        "mid-run budget hit — stopping",
+                        spent_run_usd=round(spent_so_far, 4),
+                        remaining_at_start_usd=remaining,
+                    )
+                    break
+
+                existing = None
+                if sel.get("existing_topic_key"):
+                    try:
+                        existing = await api.find_article_by_topic_key(
+                            sel["existing_topic_key"]
+                        )
+                    except Exception as e:
+                        await log.warn(
+                            "topic_key lookup failed; treating as new",
+                            topic_key=sel["existing_topic_key"],
+                            error=str(e),
+                        )
+
+                article, w_cost, _, _ = await write_article(
+                    cfg, client, sel, log, existing=existing
+                )
+                total_cost += w_cost
+                if article is None:
+                    continue
+
+                # If we matched an existing article, hand the route the
+                # existing topic_key so it upserts in place.
+                if existing:
+                    article["topic_key"] = sel["existing_topic_key"]
+
+                # Fallback DALL·E image when source had none AND it's a fresh
+                # article (don't regenerate images on living updates).
+                if not article["cover_image_url"] and not existing:
+                    img_url, ic = await generate_fallback_image(
+                        cfg, client, article["title"], log
+                    )
+                    image_cost += ic
+                    if img_url:
+                        article["cover_image_url"] = img_url
+                        article["image_credit"] = "Illustration by Techno Times"
+                        article["image_provider"] = cfg.image_model
+                        article["image_is_ai_generated"] = True
+
+                article["run_id"] = run_id
+                try:
+                    result = await api.upsert_article(article)
+                    if result.get("updated"):
+                        articles_updated += 1
+                        await log.info(
+                            "article updated",
+                            id=result.get("id"),
+                            title=article["title"],
+                        )
+                    else:
+                        articles_created += 1
+                        await log.info(
+                            "article published",
+                            id=result.get("id"),
+                            title=article["title"],
+                        )
+                except httpx.HTTPStatusError as e:
+                    await log.warn(
+                        "article upsert failed",
+                        title=article["title"],
+                        status=e.response.status_code,
+                        body=e.response.text[:300],
+                    )
+                except Exception as e:
+                    await log.warn(
+                        "article upsert failed", title=article["title"], error=str(e)
+                    )
 
     except Exception as e:  # pragma: no cover
         err = f"{type(e).__name__}: {e}"
@@ -405,37 +561,58 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
     finished_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(finished_at))
     duration_ms = int((finished_at - started_at) * 1000)
 
+    # Final status: cancelled (budget), failed (exception), or succeeded.
+    if cancelled:
+        final_status = "cancelled"
+    elif err:
+        final_status = "failed"
+    else:
+        final_status = "succeeded"
+
     await api.upsert_run({
         "id": run_id,
         "trigger": trigger,
         "agent": "news-scout",
-        "status": "failed" if err else "succeeded",
+        "status": final_status,
         "started_at": started_iso,
         "finished_at": finished_iso,
         "duration_ms": duration_ms,
         "topics_considered": topics_considered,
-        "articles_created": articles_created,
+        "articles_created": articles_created + articles_updated,
         "cost_usd": round(total_cost + image_cost, 4),
         "model": cfg.writer_model,
         "error": err,
         "metadata": {
             "openai_cost_usd": round(total_cost, 4),
             "image_cost_usd": round(image_cost, 4),
+            "articles_new": articles_created,
+            "articles_updated": articles_updated,
+            "cancelled_reason": "over_daily_budget" if cancelled else None,
         },
     })
+
+    # Roll cost into today's ledger for the budget banner.
+    if total_cost > 0 or image_cost > 0 or articles_created or articles_updated:
+        try:
+            await api.report_cost(
+                openai_cost_usd=round(total_cost, 4),
+                image_cost_usd=round(image_cost, 4),
+                articles=articles_created + articles_updated,
+                runs=1,
+            )
+        except Exception as e:
+            await log.warn("cost report failed", error=str(e))
 
     await log.flush()
     await api.aclose()
     return {
         "run_id": run_id,
         "articles_created": articles_created,
+        "articles_updated": articles_updated,
+        "status": final_status,
         "cost_usd": round(total_cost + image_cost, 4),
         "error": err,
     }
-
-
-# httpx import only when needed in run_pipeline; do it here for type checkers
-import httpx  # noqa: E402
 
 
 def main() -> None:

@@ -16,7 +16,7 @@ import modal
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install_from_pyproject("pyproject.toml")
+    .pip_install_from_requirements("requirements.txt")
     .add_local_python_source("technotimes_agents")
 )
 

@@ -120,7 +120,17 @@ export type Database = {
       cost_ledger: TableHelper<CostLedgerRow, "day">;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      add_run_cost: {
+        Args: {
+          p_openai_cost: number;
+          p_image_cost: number;
+          p_articles: number;
+          p_runs: number;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: {
       article_status: ArticleStatus;
       agent_run_status: AgentRunStatus;

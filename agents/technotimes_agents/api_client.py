@@ -33,10 +33,55 @@ class ApiClient:
         r.raise_for_status()
 
     # --- articles -----------------------------------------------------------
-    async def insert_article(self, payload: dict[str, Any]) -> str:
+    async def upsert_article(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Insert or living-update by topic_key. Returns {id, updated, slug}."""
         r = await self._client.post(f"{self.base_url}/api/agent/articles", json=payload)
         r.raise_for_status()
-        return r.json()["id"]
+        return r.json()
+
+    async def find_article_by_topic_key(
+        self, topic_key: str
+    ) -> dict[str, Any] | None:
+        r = await self._client.get(
+            f"{self.base_url}/api/agent/articles/by-topic-key",
+            params={"topic_key": topic_key},
+        )
+        if r.status_code == 204:
+            return None
+        r.raise_for_status()
+        return r.json()
+
+    async def recent_topics(self, days: int = 7) -> list[dict[str, Any]]:
+        r = await self._client.get(
+            f"{self.base_url}/api/agent/recent-topics",
+            params={"days": days},
+        )
+        r.raise_for_status()
+        return r.json().get("topics", [])
+
+    # --- budget / cost ------------------------------------------------------
+    async def get_budget(self) -> dict[str, Any]:
+        r = await self._client.get(f"{self.base_url}/api/agent/budget")
+        r.raise_for_status()
+        return r.json()
+
+    async def report_cost(
+        self,
+        openai_cost_usd: float,
+        image_cost_usd: float,
+        articles: int,
+        runs: int = 1,
+    ) -> None:
+        r = await self._client.post(
+            f"{self.base_url}/api/agent/cost",
+            json={
+                "openai_cost_usd": openai_cost_usd,
+                "image_cost_usd": image_cost_usd,
+                "articles": articles,
+                "runs": runs,
+            },
+        )
+        r.raise_for_status()
 
 
 class LogBuffer:
