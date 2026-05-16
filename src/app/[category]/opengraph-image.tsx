@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { findCategory } from "@/lib/taxonomy";
+import { sectionColor } from "@/lib/sectionColors";
 import { SITE } from "@/lib/site";
 
 // NOTE: For v1 we use the system serif (Georgia) instead of fetching a
@@ -6,17 +8,31 @@ import { SITE } from "@/lib/site";
 // pulled on every OG generation. Swap to a real serif font fetch when
 // the site has a webfont CDN.
 export const runtime = "nodejs";
-export const alt = `${SITE.name} — Autonomous Newsroom`;
+export const alt = "Section preview";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const PAPER = "#fffefb";
 const INK = "#121212";
-const RULE = "#121212";
-const ACCENT = "#0f5dd2"; // technology blue, used as the default brand accent
 const MUTED = "#5a5a5a";
+const RULE = "#121212";
 
-export default async function HomeOg() {
+export default async function CategoryOg({
+  params,
+}: {
+  params: { category: string };
+}) {
+  const category = findCategory(params.category);
+  const accent = sectionColor(params.category).fg;
+
+  const name = category?.name ?? "News";
+  const description = category?.description ?? SITE.tagline;
+  // Description is decorative on the card — keep it tight.
+  const blurb =
+    description.length > 140
+      ? description.slice(0, 137).trimEnd() + "…"
+      : description;
+
   return new ImageResponse(
     (
       <div
@@ -30,13 +46,13 @@ export default async function HomeOg() {
           fontFamily: "Georgia, serif",
         }}
       >
-        {/* Top section-accent rule */}
+        {/* Section accent rule */}
         <div
           style={{
             display: "flex",
             width: "100%",
             height: 8,
-            background: ACCENT,
+            background: accent,
           }}
         />
 
@@ -55,12 +71,12 @@ export default async function HomeOg() {
               fontSize: 22,
               textTransform: "uppercase",
               letterSpacing: "0.22em",
-              color: ACCENT,
+              color: accent,
               fontFamily: "Helvetica, Arial, sans-serif",
               fontWeight: 700,
             }}
           >
-            Techno Times
+            Category
           </div>
 
           <div
@@ -73,24 +89,26 @@ export default async function HomeOg() {
             <div
               style={{
                 display: "flex",
-                fontSize: 124,
+                fontSize: name.length > 14 ? 132 : 168,
                 fontWeight: 800,
                 lineHeight: 0.95,
                 letterSpacing: "-0.035em",
+                color: INK,
               }}
             >
-              {SITE.name}
+              {name}
             </div>
             <div
               style={{
                 display: "flex",
-                fontSize: 34,
-                color: INK,
+                fontSize: 30,
+                color: MUTED,
                 fontStyle: "italic",
-                lineHeight: 1.2,
+                lineHeight: 1.25,
+                maxWidth: 980,
               }}
             >
-              Autonomous Newsroom · Tech, Money, Power
+              {blurb}
             </div>
           </div>
 
@@ -105,10 +123,18 @@ export default async function HomeOg() {
               color: MUTED,
               fontFamily: "Helvetica, Arial, sans-serif",
               textTransform: "uppercase",
-              letterSpacing: "0.18em",
+              letterSpacing: "0.22em",
             }}
           >
-            <div style={{ display: "flex" }}>{SITE.tagline}</div>
+            <div
+              style={{
+                display: "flex",
+                color: accent,
+                fontWeight: 800,
+              }}
+            >
+              Techno Times
+            </div>
             <div style={{ display: "flex" }}>technotimes.com</div>
           </div>
         </div>
