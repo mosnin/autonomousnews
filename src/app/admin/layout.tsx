@@ -24,6 +24,7 @@ export default function AdminLayout({
               <Link href="/admin/runs" className="hover:underline">Agent Runs</Link>
               <Link href="/admin/logs" className="hover:underline">Logs</Link>
               <Link href="/admin/articles" className="hover:underline">Articles</Link>
+              <Link href="/admin/authors" className="hover:underline">Authors</Link>
             </nav>
           </div>
           <form action="/api/admin/logout" method="post">

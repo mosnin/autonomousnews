@@ -128,7 +128,33 @@ export type AdminStats = {
   articles24h: number;
   lastRunAt: string | null;
   lastRunStatus: string | null;
+  todaysCostUsd: number;
+  todaysOpenAiUsd: number;
+  todaysImageUsd: number;
 };
+
+export async function getTodaysCost(): Promise<{
+  total: number;
+  openai: number;
+  image: number;
+}> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { total: 0, openai: 0, image: 0 };
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("cost_ledger")
+    .select("openai_cost_usd, image_cost_usd, total_cost_usd")
+    .eq("day", today)
+    .maybeSingle();
+  const row = data as
+    | { openai_cost_usd: number; image_cost_usd: number; total_cost_usd: number }
+    | null;
+  return {
+    total: Number(row?.total_cost_usd ?? 0),
+    openai: Number(row?.openai_cost_usd ?? 0),
+    image: Number(row?.image_cost_usd ?? 0),
+  };
+}
 
 export async function getAdminStats(): Promise<AdminStats> {
   const supabase = getSupabaseAdmin();
@@ -141,12 +167,15 @@ export async function getAdminStats(): Promise<AdminStats> {
     articles24h: 0,
     lastRunAt: null,
     lastRunStatus: null,
+    todaysCostUsd: 0,
+    todaysOpenAiUsd: 0,
+    todaysImageUsd: 0,
   };
   if (!supabase) return empty;
 
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
 
-  const [total, published, draft, runs, failed, articles24h, lastRun] =
+  const [total, published, draft, runs, failed, articles24h, lastRun, costs] =
     await Promise.all([
       supabase.from("articles").select("id", { head: true, count: "exact" }),
       supabase
@@ -176,6 +205,7 @@ export async function getAdminStats(): Promise<AdminStats> {
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      getTodaysCost(),
     ]);
 
   return {
@@ -189,5 +219,8 @@ export async function getAdminStats(): Promise<AdminStats> {
       (lastRun.data as { started_at?: string } | null)?.started_at ?? null,
     lastRunStatus:
       (lastRun.data as { status?: string } | null)?.status ?? null,
+    todaysCostUsd: costs.total,
+    todaysOpenAiUsd: costs.openai,
+    todaysImageUsd: costs.image,
   };
 }

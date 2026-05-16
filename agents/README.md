@@ -1,63 +1,85 @@
-# Techno Times — Autonomous News Agents
+# Techno Times — autonomous news agents
 
-This directory holds the **Modal**-deployed Python worker that runs every hour,
-pulls trending topics from multiple news APIs, drafts articles with the
-**OpenAI Agents SDK**, and pushes them into Supabase via the Next.js
-`/api/agent/*` endpoints.
+Modal-deployed Python worker that runs every hour, pulls trending topics from
+[newsapi.org](https://newsapi.org/) and [thenewsapi.com](https://www.thenewsapi.com/),
+drafts long-form articles with the OpenAI Agents SDK, hot-links source images
+(with credit) or generates a DALL·E 3 fallback, and publishes through the
+Next.js `/api/agent/*` endpoints.
 
-The Next.js app does **not** import this code; the worker is an independent
-Modal deployment that talks to the site over HTTP using the `ADMIN_API_KEY`
-bearer token.
+The Next.js app and the agent worker are **independent deployments** — they
+only communicate over HTTP using a shared `ADMIN_API_KEY`.
 
 ## Pipeline
 
-1. `news-scout` agent
-   - Calls https://newsapi.org/ (`NEWSAPI_KEY`)
-   - Calls https://www.thenewsapi.com/ (`THENEWSAPI_TOKEN`)
-   - Optionally browses the live web with the OpenAI Agents SDK
-     `web_search` / `WebSearchTool` to corroborate
-   - Clusters trending topics, dedupes against already-published slugs
-2. `editor` agent
-   - Picks the N highest-value topics for our taxonomy clusters
-   - Assigns each to a category / subcategory (must match
-     `src/lib/taxonomy.ts`)
-3. `writer` agent (per topic)
-   - Drafts a 600–900-word article with kicker, dek, body, SEO fields
-   - Adds source URLs for transparency
-4. POSTs to:
-   - `POST /api/agent/runs` — create/update the run row
-   - `POST /api/agent/logs` — stream log entries (batched)
-   - `POST /api/agent/articles` — insert each finished article
-
-All requests use `Authorization: Bearer $ADMIN_API_KEY`.
-
-## Hourly schedule
-
-The Modal app declares a schedule (`modal.Period(hours=1)`). Each invocation:
-
-- Inserts an `agent_runs` row with `status='running'`
-- Streams logs as it works
-- On finish, updates the row with `status='succeeded' | 'failed'`,
-  `articles_created`, `cost_usd`, `duration_ms`
-
-The `/admin` dashboard reads from these tables in real time.
-
-## Environment
-
 ```
-OPENAI_API_KEY=...
-NEWSAPI_KEY=...
-THENEWSAPI_TOKEN=...
-SITE_URL=https://technotimes.com
-ADMIN_API_KEY=...
+hourly_run()
+  └─ fetch_trends                 ← newsapi.org + thenewsapi.com (deduped)
+  └─ select_topics  (editor)      ← gpt-4o-mini picks N stories per run
+       └─ for each selection:
+            └─ write_article (writer)  ← 1,000–1,500-word long-form draft
+            └─ generate_fallback_image ← DALL·E 3 only if source has no image
+            └─ POST /api/agent/articles → published immediately
+  └─ POST /api/agent/runs (status update)
 ```
 
-## Files (to be added in a follow-up)
+Every step streams logs to `/api/agent/logs`, which surface in the `/admin`
+dashboard in real time.
 
-- `worker.py` — Modal app entry point
-- `agents/scout.py` — news-scout agent definition
-- `agents/editor.py` — topic ranking agent
-- `agents/writer.py` — long-form drafting agent
-- `clients/api.py` — HTTP client for `/api/agent/*`
-- `clients/newsapi.py` — newsapi.org wrapper
-- `clients/thenewsapi.py` — thenewsapi.com wrapper
+## Local development
+
+```bash
+cd agents
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+
+cp ../.env.example .env       # fill in OPENAI_API_KEY, NEWSAPI_KEY,
+                              # THENEWSAPI_TOKEN, ADMIN_API_KEY, SITE_URL
+export $(grep -v '^#' .env | xargs)
+
+python -m technotimes_agents.pipeline
+```
+
+That runs the pipeline once and prints the result.
+
+## Deploying to Modal
+
+1. Create the Modal secret:
+   ```
+   modal secret create technotimes-secrets \
+       SITE_URL=https://technotimes.com \
+       ADMIN_API_KEY=<same value as the Next.js app> \
+       OPENAI_API_KEY=<sk-...> \
+       NEWSAPI_KEY=<key> \
+       THENEWSAPI_TOKEN=<token> \
+       DAILY_BUDGET_USD=10
+   ```
+
+2. Deploy the app:
+   ```
+   modal deploy modal_app.py
+   ```
+
+Modal will run `hourly_run()` once an hour. To trigger a run manually:
+
+```
+modal run modal_app.py
+```
+
+## Files
+
+- `modal_app.py` — Modal app definition + hourly schedule
+- `technotimes_agents/config.py` — env loader
+- `technotimes_agents/sources.py` — newsapi.org + thenewsapi.com clients
+- `technotimes_agents/taxonomy.py` — mirror of the site taxonomy + author roster
+- `technotimes_agents/api_client.py` — HTTP client + buffered log emitter
+- `technotimes_agents/pipeline.py` — full pipeline (editor + writer + image)
+
+The mirror in `taxonomy.py` must stay in sync with `src/lib/taxonomy.ts` and
+`src/lib/authors.ts`. If you change one, change the other.
+
+## Budget cap
+
+The site exposes today's spend at `/admin`. When today's cost ledger row
+exceeds `DAILY_BUDGET_USD`, the dashboard shows a red banner. The worker
+itself does **not** yet hard-stop on the cap — that's the next iteration
+(read `cost_ledger` at the top of `run_pipeline` and abort if over).

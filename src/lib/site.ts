@@ -13,3 +13,12 @@ export const SITE = {
 
 export const ADSENSE_CLIENT_ID =
   process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "";
+
+export const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID ?? "";
+export const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
+export const GSC_VERIFICATION =
+  process.env.NEXT_PUBLIC_GSC_VERIFICATION ?? "";
+
+export const DAILY_BUDGET_USD = Number(
+  process.env.DAILY_BUDGET_USD ?? "10"
+);

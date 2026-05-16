@@ -10,7 +10,9 @@ import {
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
+import ArticleDisclaimer from "@/components/ArticleDisclaimer";
 import { SITE } from "@/lib/site";
+import { findAuthor } from "@/lib/authors";
 
 export const revalidate = 300;
 
@@ -117,8 +119,10 @@ export default async function CategorySlugPage({
         {article.dek ? (
           <p className="dek text-lg md:text-xl">{article.dek}</p>
         ) : null}
-        <div className="byline mt-5 flex justify-center gap-4">
-          <span>By {article.author_name}</span>
+        <div className="byline mt-5 flex justify-center gap-4 flex-wrap">
+          <Link href={`/by/${article.author_slug}`} className="hover:underline">
+            By {article.author_name}
+          </Link>
           {article.published_at ? (
             <time dateTime={article.published_at}>
               {new Date(article.published_at).toLocaleDateString("en-US", {
@@ -129,6 +133,13 @@ export default async function CategorySlugPage({
             </time>
           ) : null}
           {article.read_minutes ? <span>{article.read_minutes} Min Read</span> : null}
+          {article.update_count > 0 && article.updated_at ? (
+            <span title={article.updated_at}>
+              Updated {new Date(article.updated_at).toLocaleDateString("en-US", {
+                month: "long", day: "numeric", year: "numeric",
+              })}
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -140,9 +151,26 @@ export default async function CategorySlugPage({
             alt={article.cover_image_alt ?? ""}
             className="w-full h-auto"
           />
-          {article.cover_image_alt ? (
-            <figcaption className="byline mt-2">{article.cover_image_alt}</figcaption>
-          ) : null}
+          <figcaption className="byline mt-2 flex flex-wrap gap-3">
+            {article.cover_image_alt ? <span>{article.cover_image_alt}</span> : null}
+            {article.image_credit ? (
+              article.image_source_url ? (
+                <a
+                  href={article.image_source_url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="underline"
+                >
+                  {article.image_credit}
+                </a>
+              ) : (
+                <span>{article.image_credit}</span>
+              )
+            ) : null}
+            {article.image_is_ai_generated ? (
+              <span className="uppercase tracking-widest">AI-generated illustration</span>
+            ) : null}
+          </figcaption>
         </figure>
       ) : null}
 
@@ -154,6 +182,33 @@ export default async function CategorySlugPage({
 
       <div className="max-w-2xl mx-auto">
         <AdSlot slot="article-inline" />
+      </div>
+
+      <div className="max-w-2xl mx-auto">
+        <ArticleDisclaimer
+          categorySlug={article.category_slug}
+          subcategorySlug={article.subcategory_slug}
+          aiDisclosed={article.ai_disclosed}
+        />
+        {(() => {
+          const author = findAuthor(article.author_slug);
+          if (!author) return null;
+          return (
+            <aside className="mt-10 border-t border-rule pt-6 flex gap-4 items-start">
+              <div className="w-14 h-14 rounded-full bg-ink text-white flex items-center justify-center font-bold font-sans flex-shrink-0">
+                {author.initials}
+              </div>
+              <div>
+                <div className="kicker mb-1">About the writer</div>
+                <Link href={`/by/${author.slug}`} className="headline text-lg hover:underline">
+                  {author.name}
+                </Link>
+                <div className="byline">{author.title}</div>
+                <p className="dek mt-2 text-sm">{author.bio}</p>
+              </div>
+            </aside>
+          );
+        })()}
       </div>
 
       {filteredRelated.length > 0 ? (

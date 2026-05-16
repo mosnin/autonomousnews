@@ -3,7 +3,13 @@ import Script from "next/script";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import { SITE, ADSENSE_CLIENT_ID } from "@/lib/site";
+import {
+  SITE,
+  ADSENSE_CLIENT_ID,
+  GA4_ID,
+  PLAUSIBLE_DOMAIN,
+  GSC_VERIFICATION,
+} from "@/lib/site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -30,6 +36,9 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   icons: { icon: "/favicon.ico" },
+  verification: GSC_VERIFICATION
+    ? { google: GSC_VERIFICATION }
+    : undefined,
 };
 
 export default function RootLayout({
@@ -56,6 +65,31 @@ export default function RootLayout({
             strategy="afterInteractive"
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
             crossOrigin="anonymous"
+          />
+        ) : null}
+        {GA4_ID ? (
+          <>
+            <Script
+              id="ga4-src"
+              async
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA4_ID}', { anonymize_ip: true });`}
+            </Script>
+          </>
+        ) : null}
+        {PLAUSIBLE_DOMAIN ? (
+          <Script
+            id="plausible"
+            defer
+            strategy="afterInteractive"
+            data-domain={PLAUSIBLE_DOMAIN}
+            src="https://plausible.io/js/script.js"
           />
         ) : null}
         <script

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminApiAuthorized } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { findCategory } from "@/lib/taxonomy";
+import { pingIndexNow } from "@/lib/indexnow";
+import { SITE } from "@/lib/site";
 
 // Insert an article produced by the agent worker and link it to its run.
 export async function POST(req: NextRequest) {
@@ -74,6 +76,12 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("agent_run_articles")
       .insert({ run_id: body.run_id, article_id: (inserted as { id: string }).id });
+  }
+
+  if (status === "published") {
+    const url = `${SITE.url}/${insert.category_slug}/${insert.slug}`;
+    // Fire-and-forget; IndexNow result lives in logs if you care to log it.
+    pingIndexNow([url]).catch(() => undefined);
   }
 
   return NextResponse.json({ id: (inserted as { id: string }).id });

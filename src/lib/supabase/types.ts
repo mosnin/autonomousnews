@@ -25,6 +25,19 @@ export type Article = {
   published_at: string | null;
   updated_at: string;
   created_at: string;
+  // Phase 2 additions
+  topic_key: string | null;
+  update_count: number;
+  last_updated_by_run: string | null;
+  image_credit: string | null;
+  image_source_url: string | null;
+  image_is_ai_generated: boolean;
+  image_provider: string | null;
+  ai_disclosed: boolean;
+  model_used: string | null;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  generation_cost_usd: number | null;
 };
 
 export type AgentRunStatus =
@@ -68,9 +81,27 @@ export type AgentRunArticle = {
   created_at: string;
 };
 
-// Be permissive on Insert/Update: most columns have DB defaults, and the
-// app/agents construct payloads dynamically. The Row shape stays strict
-// for selects.
+export type AuthorRow = {
+  slug: string;
+  name: string;
+  title: string;
+  bio: string;
+  beat: string[];
+  sub_beat: string[];
+  avatar_url: string | null;
+  created_at: string;
+};
+
+export type CostLedgerRow = {
+  day: string;
+  openai_cost_usd: number;
+  image_cost_usd: number;
+  total_cost_usd: number;
+  articles_created: number;
+  runs_completed: number;
+  updated_at: string;
+};
+
 type TableHelper<Row extends Record<string, unknown>, Required extends keyof Row = never> = {
   Row: Row;
   Insert: Pick<Row, Required> & Partial<Row>;
@@ -85,6 +116,8 @@ export type Database = {
       agent_runs: TableHelper<AgentRun, "agent">;
       agent_logs: TableHelper<AgentLog, "message">;
       agent_run_articles: TableHelper<AgentRunArticle, "run_id" | "article_id">;
+      authors: TableHelper<AuthorRow, "slug" | "name" | "title" | "bio">;
+      cost_ledger: TableHelper<CostLedgerRow, "day">;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

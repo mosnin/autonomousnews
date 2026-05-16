@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { CATEGORIES } from "@/lib/taxonomy";
+import { AUTHORS } from "@/lib/authors";
 import { SITE } from "@/lib/site";
 import { getLatestArticles } from "@/lib/articles";
 
@@ -9,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticUrls: MetadataRoute.Sitemap = [
     { url: `${base}/`, lastModified: now, changeFrequency: "hourly", priority: 1 },
+    { url: `${base}/about-our-ai`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   const categoryUrls: MetadataRoute.Sitemap = CATEGORIES.flatMap((c) => [
@@ -26,6 +28,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ]);
 
+  const authorUrls: MetadataRoute.Sitemap = AUTHORS.map((a) => ({
+    url: `${base}/by/${a.slug}`,
+    lastModified: now,
+    changeFrequency: "daily" as const,
+    priority: 0.5,
+  }));
+
   const articles = await getLatestArticles(500);
   const articleUrls: MetadataRoute.Sitemap = articles.map((a) => ({
     url: `${base}/${a.category_slug}/${a.slug}`,
@@ -34,5 +43,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticUrls, ...categoryUrls, ...articleUrls];
+  return [...staticUrls, ...categoryUrls, ...authorUrls, ...articleUrls];
 }

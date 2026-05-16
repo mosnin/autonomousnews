@@ -9,6 +9,7 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import StatusPill from "@/components/admin/StatusPill";
 import { formatDistanceToNow } from "@/lib/admin/format";
+import { DAILY_BUDGET_USD } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,28 @@ export default async function AdminOverview() {
         </div>
       ) : null}
 
+      {(() => {
+        const pct = DAILY_BUDGET_USD > 0
+          ? (stats.todaysCostUsd / DAILY_BUDGET_USD) * 100
+          : 0;
+        const over = stats.todaysCostUsd >= DAILY_BUDGET_USD;
+        const near = pct >= 75 && !over;
+        if (!over && !near) return null;
+        return (
+          <div
+            className={`border px-4 py-3 text-sm ${
+              over
+                ? "border-red-400 bg-red-50 text-red-800"
+                : "border-yellow-400 bg-yellow-50 text-yellow-900"
+            }`}
+          >
+            <strong>{over ? "Daily budget exceeded" : "Approaching daily budget"}:</strong>{" "}
+            ${stats.todaysCostUsd.toFixed(2)} of ${DAILY_BUDGET_USD.toFixed(2)} used today
+            {over ? " — new runs are blocked by the worker." : "."}
+          </div>
+        );
+      })()}
+
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Articles" value={stats.totalArticles} />
         <Stat label="Published" value={stats.publishedArticles} />
@@ -57,6 +80,19 @@ export default async function AdminOverview() {
           label="Last run status"
           value={stats.lastRunStatus ?? "—"}
           accent={stats.lastRunStatus === "failed" ? "bad" : undefined}
+        />
+        <Stat
+          label="Spend today"
+          value={`$${stats.todaysCostUsd.toFixed(2)} / $${DAILY_BUDGET_USD.toFixed(2)}`}
+          accent={stats.todaysCostUsd >= DAILY_BUDGET_USD ? "bad" : undefined}
+        />
+        <Stat
+          label="OpenAI today"
+          value={`$${stats.todaysOpenAiUsd.toFixed(2)}`}
+        />
+        <Stat
+          label="Images today"
+          value={`$${stats.todaysImageUsd.toFixed(2)}`}
         />
       </section>
 

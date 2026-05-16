@@ -18,42 +18,39 @@ export default function SiteHeader() {
     <header className="border-b border-rule bg-white">
       {/* Top utility bar */}
       <div className="hidden md:flex max-w-content mx-auto px-4 items-center justify-between text-[11px] uppercase tracking-widest pt-3">
-        <div className="flex items-center gap-4">
-          <button aria-label="Search" className="p-1">
+        <form action="/search" method="get" className="flex items-center gap-2">
+          <label htmlFor="hdr-search" className="sr-only">Search</label>
+          <button type="submit" aria-label="Search" className="p-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
             </svg>
           </button>
-        </div>
-        <nav aria-label="Editions" className="flex items-center gap-5 text-ink">
-          <Link href="/" className="hover:underline">U.S.</Link>
-          <Link href="/world" className="hover:underline">International</Link>
-          <Link href="/world/americas" className="hover:underline">Canada</Link>
-          <span className="text-muted">Español</span>
-          <span className="text-muted">中文</span>
+          <input
+            id="hdr-search"
+            type="search"
+            name="q"
+            placeholder="Search"
+            className="text-[12px] bg-transparent border-b border-rule focus:border-ink outline-none px-1 py-0.5 w-32 normal-case tracking-normal"
+          />
+        </form>
+        <nav aria-label="Sections" className="flex items-center gap-5 text-ink">
+          <Link href="/world" className="hover:underline">World</Link>
+          <Link href="/us" className="hover:underline">U.S.</Link>
+          <Link href="/business" className="hover:underline">Business</Link>
+          <Link href="/about-our-ai" className="hover:underline">About Our AI</Link>
         </nav>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/subscribe"
-            className="bg-accent text-white text-[11px] tracking-widest px-3 py-2 hover:opacity-90"
-          >
-            Subscribe for $1/week
-          </Link>
-          <Link
-            href="/login"
-            className="border border-ink text-ink text-[11px] tracking-widest px-3 py-2 hover:bg-wash"
-          >
-            Log in
-          </Link>
-        </div>
+        <div className="text-muted">An AI-assisted newsroom</div>
       </div>
 
       {/* Mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3">
         <MobileMenu />
-        <Link href="/subscribe" className="bg-accent text-white text-[10px] tracking-widest px-3 py-1.5">
-          Subscribe
+        <Link href="/search" aria-label="Search" className="p-1">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
         </Link>
       </div>
 
