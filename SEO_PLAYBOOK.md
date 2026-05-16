@@ -310,17 +310,45 @@ prompt has drifted.
 
 ---
 
-## 15. What still isn't automated
+## 15. Pillar pages (evergreen topic guides)
 
-These are intentional manual decisions, not bugs:
+Each subcategory page gets a ~2,000-word reference guide rendered above the
+article grid. They are produced by a separate Modal worker
+(`weekly_pillar_refresh`) that runs every Monday at 08:00 UTC and rewrites
+every one of ~80 pillars in a single run.
+
+A pillar is the article SEO contract (focus keyword + long-tail keywords
++ power word) plus extra structured sections:
+
+- `overview` — one-paragraph plain-language definition
+- `why_it_matters` — 2–3 sentences for a non-expert
+- `key_terms` — 5–8 glossary entries
+- `timeline` — 4–8 chronological events
+- `faq` — 5–7 Q&A pairs (rendered as `FAQPage` JSON-LD on the page)
+- `related_subcategories` — 2–4 sibling-subcategory slugs for crosslinking
+
+Pillars live at the existing `/<category>/<subcategory>` URL — one
+canonical page per topic, never two. The article grid still appears below.
+This is the deliberate SEO move: concentrate link equity on a single URL
+that targets the head term while individual articles attack the long tail.
+
+Refresh by hand or test the prompt:
+```bash
+modal run modal_app.py::manual_pillar_refresh
+# or, for a free dry-run:
+DRY_RUN=1 python -m technotimes_agents.pillar_pipeline
+```
+
+Schema: `supabase/migrations/0006_subcategory_pillars.sql`.
+Component: `src/components/SubcategoryPillar.tsx`.
+Ingest endpoint: `POST /api/agent/pillars`.
+
+## 16. What still isn't automated
 
 - **Affiliate links** — not in scope for v1.
-- **Pillar pages** — the evergreen reference pages per subcategory ("Everything
-  you need to know about AI export controls") will be produced by a separate
-  agent in a future iteration. They run on a longer cadence (weekly, not
-  hourly) and are what actually rank for high-volume head terms over the
-  long term.
 - **Internal-link quality auditing** — auto-linker inserts cluster links, but
   a human editor could improve placement on top stories.
 - **Cookie consent banner** — explicit v1 choice; disclosure-only privacy
   posture (see `/privacy`).
+- **Postgres FTS / semantic search** — `/search` still uses ILIKE; fine to
+  ~10k articles, plan to migrate before then.

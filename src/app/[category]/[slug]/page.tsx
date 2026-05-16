@@ -8,6 +8,7 @@ import {
   getArticlesBySubcategory,
   getRelatedArticles,
   getStoryUpdates,
+  getSubcategoryPillar,
 } from "@/lib/articles";
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
@@ -21,6 +22,7 @@ import ViewPing from "@/components/ViewPing";
 import TopicChips from "@/components/TopicChips";
 import SourcesBlock from "@/components/SourcesBlock";
 import StoryUpdatesTimeline from "@/components/StoryUpdatesTimeline";
+import SubcategoryPillarBlock from "@/components/SubcategoryPillar";
 import LiveBadge from "@/components/LiveBadge";
 import NewsletterSignup from "@/components/NewsletterSignup";
 import TableOfContents from "@/components/TableOfContents";
@@ -103,13 +105,17 @@ export default async function CategorySlugPage({
   // First: is this a known subcategory? Render subcategory listing.
   const sub = findSubcategory(category, slug);
   if (sub) {
-    let articles = await getArticlesBySubcategory(category, slug, 30);
+    const [articlesResult, pillar] = await Promise.all([
+      getArticlesBySubcategory(category, slug, 30),
+      getSubcategoryPillar(category, slug),
+    ]);
+    let articles = articlesResult;
     if (articles.length === 0) {
       articles = PLACEHOLDER_ARTICLES.filter(
         (a) => a.category_slug === category && a.subcategory_slug === slug
       );
     }
-    return renderSubcategory(sub.category.slug, sub.subcategory, articles);
+    return renderSubcategory(sub.category.slug, sub.subcategory, articles, pillar);
   }
 
   // Else: try to load article
@@ -345,7 +351,8 @@ export default async function CategorySlugPage({
 function renderSubcategory(
   categorySlug: string,
   subcategory: { slug: string; name: string; description: string },
-  articles: Awaited<ReturnType<typeof getArticlesBySubcategory>>
+  articles: Awaited<ReturnType<typeof getArticlesBySubcategory>>,
+  pillar: Awaited<ReturnType<typeof getSubcategoryPillar>>
 ) {
   const category = findCategory(categorySlug)!;
   const lead = articles[0];
@@ -357,12 +364,54 @@ function renderSubcategory(
     { name: subcategory.name, url: `/${category.slug}/${subcategory.slug}` },
   ]);
 
+  // When a pillar exists, emit Article-style JSON-LD describing it as a
+  // reference document, plus FAQPage from the pillar FAQ if present.
+  const pillarLd = pillar
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: pillar.title,
+        description: pillar.dek ?? undefined,
+        author: { "@type": "Organization", name: SITE.name },
+        datePublished: pillar.generated_at,
+        dateModified: pillar.updated_at,
+        mainEntityOfPage: `${SITE.url}/${category.slug}/${subcategory.slug}`,
+        keywords: [pillar.focus_keyword, ...pillar.long_tail_keywords]
+          .filter(Boolean)
+          .join(", "),
+      }
+    : null;
+  const pillarFAQ =
+    pillar?.faq && pillar.faq.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: pillar.faq.map((it) => ({
+            "@type": "Question",
+            name: it.q,
+            acceptedAnswer: { "@type": "Answer", text: it.a },
+          })),
+        }
+      : null;
+
   return (
     <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(subBreadcrumbs) }}
       />
+      {pillarLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(pillarLd) }}
+        />
+      ) : null}
+      {pillarFAQ ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(pillarFAQ) }}
+        />
+      ) : null}
       <header className="rule-bottom pb-8 mb-10">
         <div className="section-ribbon" />
         <div className="kicker mb-2">
@@ -371,6 +420,18 @@ function renderSubcategory(
         <h1 className="headline text-4xl md:text-6xl mb-4">{subcategory.name}</h1>
         <p className="dek max-w-3xl text-lg">{subcategory.description}</p>
       </header>
+
+      {pillar ? (
+        <SubcategoryPillarBlock
+          pillar={pillar}
+          excludeHrefs={
+            new Set([
+              `/${category.slug}`,
+              `/${category.slug}/${subcategory.slug}`,
+            ])
+          }
+        />
+      ) : null}
 
       {lead ? (
         <section className="mb-10">

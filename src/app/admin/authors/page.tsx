@@ -67,6 +67,16 @@ export default async function AdminAuthors() {
                   );
                 })}
               </div>
+              <form action="/api/admin/regen-portrait" method="post" className="mt-3">
+                <input type="hidden" name="slug" value={a.slug} />
+                <button
+                  type="submit"
+                  className="text-[11px] uppercase tracking-widest border border-rule px-2 py-1 hover:bg-wash"
+                  title="Regenerate this author's DALL·E portrait (~$0.04)"
+                >
+                  Regenerate portrait
+                </button>
+              </form>
             </div>
           </div>
         ))}

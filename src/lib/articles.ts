@@ -302,6 +302,23 @@ export async function getRelatedArticles(
   });
 }
 
+// Pillar fetcher — used by the subcategory landing page when an evergreen
+// reference page has been generated for that subcategory.
+export async function getSubcategoryPillar(
+  categorySlug: string,
+  subcategorySlug: string
+): Promise<import("./supabase/types").SubcategoryPillar | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("subcategory_pillars")
+    .select("*")
+    .eq("category_slug", categorySlug)
+    .eq("subcategory_slug", subcategorySlug)
+    .maybeSingle();
+  return (data ?? null) as import("./supabase/types").SubcategoryPillar | null;
+}
+
 export async function getRecentArticlesForNewsSitemap(
   hours = 48
 ): Promise<Pick<Article, "slug" | "title" | "category_slug" | "published_at" | "seo_keywords">[]> {

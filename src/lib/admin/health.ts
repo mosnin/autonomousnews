@@ -432,6 +432,37 @@ export async function getHealthChecks(): Promise<Check[]> {
         detail: "focus_keyword + long_tail_keywords + faq present",
       };
     }),
+    runCheck(async () => {
+      if (!supabase)
+        return {
+          id: "pillar-table",
+          group: "Database",
+          label: "Pillar pages (0006)",
+          level: "fail",
+          detail: "supabase client unavailable",
+        };
+      const { count, error } = await supabase
+        .from("subcategory_pillars")
+        .select("category_slug", { head: true, count: "exact" });
+      if (error)
+        return {
+          id: "pillar-table",
+          group: "Database",
+          label: "Pillar pages (0006)",
+          level: "fail",
+          detail: `migration 0006 not applied? ${error.message}`,
+        };
+      return {
+        id: "pillar-table",
+        group: "Database",
+        label: "Pillar pages (0006)",
+        level: (count ?? 0) > 0 ? "ok" : "warn",
+        detail:
+          (count ?? 0) > 0
+            ? `${count} pillars generated`
+            : "table exists but no pillars yet — run weekly_pillar_refresh",
+      };
+    }),
     runCheck(async () => ({
       id: "rate-limit",
       group: "Operations",

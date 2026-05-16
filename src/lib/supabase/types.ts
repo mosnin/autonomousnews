@@ -89,6 +89,32 @@ export type AuthorProfile = {
   updated_at: string;
 };
 
+export type SubcategoryPillar = {
+  category_slug: string;
+  subcategory_slug: string;
+  title: string;
+  dek: string | null;
+  overview: string;
+  body: string;
+  why_it_matters: string | null;
+  focus_keyword: string | null;
+  long_tail_keywords: string[];
+  power_word: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  key_terms: Array<{ term: string; definition: string }> | null;
+  timeline: Array<{ year: string; event: string }> | null;
+  faq: Array<{ q: string; a: string }> | null;
+  related_subcategories: string[];
+  model_used: string | null;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  generation_cost_usd: number | null;
+  last_updated_by_run: string | null;
+  generated_at: string;
+  updated_at: string;
+};
+
 export type AgentRunStatus =
   | "queued"
   | "running"
@@ -172,6 +198,14 @@ export type Database = {
       newsletter_subscribers: TableHelper<NewsletterSubscriber, "email">;
       story_updates: TableHelper<StoryUpdate, "article_id" | "summary">;
       author_profiles: TableHelper<AuthorProfile, "slug">;
+      subcategory_pillars: TableHelper<
+        SubcategoryPillar,
+        "category_slug" | "subcategory_slug" | "title" | "overview" | "body"
+      >;
+      agent_run_pillars: TableHelper<
+        { run_id: string; category_slug: string; subcategory_slug: string; created_at: string },
+        "run_id" | "category_slug" | "subcategory_slug"
+      >;
     };
     Views: {
       most_read_articles: { Row: Article & { views_24h: number }; Relationships: [] };
