@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { limitByIp, rateLimitHeaders } from "@/lib/rateLimit";
 
 // Anonymous thumbs up/down. Soft-rate-limited by a localStorage flag on the
-// client; nothing prevents replay, but the worst case is inflated counts on
-// a single article, which is fine for a feedback signal.
+// client + IP rate limit server-side. Worst case is inflated counts on a
+// single article, which is fine for a feedback signal.
 export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ ok: false }, { status: 200 });
+
+  const rl = await limitByIp(req, "reactions", 30, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate limited" },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const id = body?.article_id;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { limitByIp, rateLimitHeaders } from "@/lib/rateLimit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -7,6 +8,15 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // When you connect a real provider (Resend, Loops, Substack), backfill from
 // newsletter_subscribers.
 export async function POST(req: NextRequest) {
+  // Tighter rate limit because this endpoint is a juicy spam target.
+  const rl = await limitByIp(req, "newsletter", 5, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate limited" },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const email = String(body?.email ?? "").trim().toLowerCase();
   const source = body?.source ? String(body.source).slice(0, 64) : null;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ArticleSummary } from "@/lib/articles";
 import { findCategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
@@ -87,13 +88,14 @@ export default function ArticleCard({
           </div>
         </div>
         {showImage && article.cover_image_url ? (
-          <div className="w-28 md:w-full aspect-square md:aspect-[4/3] overflow-hidden bg-wash">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative w-28 md:w-full aspect-square md:aspect-[4/3] overflow-hidden bg-wash">
+            <Image
               src={article.cover_image_url}
               alt={article.cover_image_alt ?? ""}
-              className="w-full h-full object-cover"
-              loading={priority ? "eager" : "lazy"}
+              fill
+              sizes="(max-width: 768px) 7rem, 25vw"
+              className="object-cover"
+              priority={priority}
             />
           </div>
         ) : null}
@@ -105,13 +107,14 @@ export default function ArticleCard({
     return (
       <Link href={href} style={css} className="story-link block">
         {showImage && article.cover_image_url ? (
-          <div className="aspect-[16/9] md:aspect-[21/9] overflow-hidden bg-wash mb-5 md:mb-7">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden bg-wash mb-5 md:mb-7">
+            <Image
               src={article.cover_image_url}
               alt={article.cover_image_alt ?? ""}
-              className="w-full h-full object-cover"
-              loading={priority ? "eager" : "lazy"}
+              fill
+              sizes="(max-width: 768px) 100vw, 80vw"
+              className="object-cover"
+              priority={priority}
             />
           </div>
         ) : null}
@@ -140,13 +143,14 @@ export default function ArticleCard({
     return (
       <Link href={href} style={css} className="story-link block">
         {showImage && article.cover_image_url ? (
-          <div className="aspect-[16/9] overflow-hidden bg-wash mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative aspect-[16/9] overflow-hidden bg-wash mb-4">
+            <Image
               src={article.cover_image_url}
               alt={article.cover_image_alt ?? ""}
-              className="w-full h-full object-cover"
-              loading={priority ? "eager" : "lazy"}
+              fill
+              sizes="(max-width: 1024px) 100vw, 66vw"
+              className="object-cover"
+              priority={priority}
             />
           </div>
         ) : null}
@@ -168,13 +172,14 @@ export default function ArticleCard({
   return (
     <Link href={href} style={css} className="story-link block group">
       {showImage && article.cover_image_url ? (
-        <div className="aspect-[16/10] overflow-hidden bg-wash mb-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[16/10] overflow-hidden bg-wash mb-3">
+          <Image
             src={article.cover_image_url}
             alt={article.cover_image_alt ?? ""}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            loading={priority ? "eager" : "lazy"}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            priority={priority}
           />
         </div>
       ) : (

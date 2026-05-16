@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { findCategory, findSubcategory } from "@/lib/taxonomy";
 import {
   getArticleBySlug,
@@ -211,12 +212,17 @@ export default async function CategorySlugPage({
 
       {article.cover_image_url ? (
         <figure className="max-w-content mx-auto px-0 md:px-8 mb-10 md:mb-14">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {/* Article hero — let Next pick the best format/size. */}
+          <Image
             src={article.cover_image_url}
             alt={article.cover_image_alt ?? ""}
+            width={1600}
+            height={900}
+            sizes="(max-width: 1024px) 100vw, 1280px"
             className="w-full h-auto"
+            priority
           />
+
           <figcaption className="byline mt-3 flex flex-wrap gap-3 px-4 md:px-0 max-w-prose mx-auto">
             {article.cover_image_alt ? <span>{article.cover_image_alt}</span> : null}
             {article.image_credit ? (

@@ -9,6 +9,7 @@ import {
 } from "@/lib/site";
 import { getTodaysCost, getRecentRuns } from "./queries";
 import { indexNowKey } from "@/lib/indexnow";
+import { isRateLimitConfigured } from "@/lib/rateLimit";
 
 export type CheckLevel = "ok" | "warn" | "fail" | "info";
 
@@ -402,6 +403,15 @@ export async function getHealthChecks(): Promise<Check[]> {
       label: "Privacy + Terms",
       level: "ok",
       detail: "/privacy and /terms are live",
+    })),
+    runCheck(async () => ({
+      id: "rate-limit",
+      group: "Operations",
+      label: "Rate limiting (Upstash)",
+      level: isRateLimitConfigured() ? "ok" : "warn",
+      detail: isRateLimitConfigured()
+        ? "configured — public POST endpoints are throttled per-IP"
+        : "UPSTASH_REDIS_REST_URL/TOKEN not set — endpoints open to abuse",
     })),
     runCheck(async () => {
       if (!supabase)
