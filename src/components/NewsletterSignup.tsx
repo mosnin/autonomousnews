@@ -47,12 +47,17 @@ export default function NewsletterSignup({
   if (compact) {
     return (
       <form onSubmit={onSubmit} className="flex gap-2 font-sans">
+        <label htmlFor="newsletter-email-compact" className="sr-only">
+          Email address
+        </label>
         <input
+          id="newsletter-email-compact"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
+          aria-label="Email address"
           className="flex-1 border border-rule bg-paper px-3 py-2 text-sm"
         />
         <button
@@ -73,12 +78,17 @@ export default function NewsletterSignup({
       <h2 className="headline text-2xl md:text-3xl mb-2">{title}</h2>
       <p className="dek text-base mb-4">{blurb}</p>
       <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2 font-sans">
+        <label htmlFor="newsletter-email" className="sr-only">
+          Email address
+        </label>
         <input
+          id="newsletter-email"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
+          aria-label="Email address"
           className="flex-1 border border-rule bg-paper px-3 py-2.5 text-base"
         />
         <button

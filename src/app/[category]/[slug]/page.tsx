@@ -31,6 +31,7 @@ import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
 import { renderArticleBody, extractChapters } from "@/lib/articleBody";
 import { breadcrumbListLd } from "@/lib/jsonld";
+import { coverImageAlt } from "@/lib/imageAlt";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 async function getReactionCounts(articleId: string): Promise<{ up: number; down: number }> {
@@ -231,7 +232,7 @@ export default async function CategorySlugPage({
           {/* Article hero — let Next pick the best format/size. */}
           <Image
             src={article.cover_image_url}
-            alt={article.cover_image_alt ?? ""}
+            alt={coverImageAlt(article)}
             width={1600}
             height={900}
             sizes="(max-width: 1024px) 100vw, 1280px"

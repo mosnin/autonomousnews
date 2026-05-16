@@ -40,17 +40,25 @@ export default function SiteHeader() {
         }`}
       >
         <form action="/search" method="get" className="flex items-center gap-2">
-          <button type="submit" aria-label="Search" className="p-1">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button
+            type="submit"
+            aria-label="Search"
+            className="p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
             </svg>
           </button>
+          <label className="sr-only" htmlFor="site-header-search">
+            Search Techno Times
+          </label>
           <input
+            id="site-header-search"
             type="search"
             name="q"
             placeholder="Search"
-            className="text-[12px] bg-transparent border-b border-rule focus:border-ink outline-none px-1 py-0.5 w-40 normal-case tracking-normal"
+            className="text-[12px] bg-transparent border-b border-rule focus:border-ink focus-visible:outline-none focus:bg-paper px-1 py-0.5 w-40 normal-case tracking-normal"
           />
         </form>
         <div className="text-center text-muted">{date}</div>
