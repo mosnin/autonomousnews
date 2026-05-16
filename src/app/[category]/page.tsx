@@ -6,6 +6,7 @@ import { getArticlesByCategory } from "@/lib/articles";
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
+import SectionStyle from "@/components/SectionStyle";
 import { SITE } from "@/lib/site";
 
 export const revalidate = 300;
@@ -60,12 +61,13 @@ export default async function CategoryPage({
   const rest = articles.slice(1);
 
   return (
-    <div className="max-w-content mx-auto px-4 pt-8 pb-12">
-      <header className="rule-bottom pb-6 mb-8">
-        <div className="kicker text-muted mb-2">Section</div>
-        <h1 className="headline text-4xl md:text-5xl mb-3">{category.name}</h1>
-        <p className="dek text-base md:text-lg max-w-3xl">{category.description}</p>
-        <nav aria-label="Subcategories" className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
+    <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+      <header className="rule-bottom pb-10 mb-12">
+        <div className="section-ribbon" />
+        <div className="kicker mb-2">Section</div>
+        <h1 className="headline text-5xl md:text-7xl mb-4">{category.name}</h1>
+        <p className="dek text-base md:text-xl max-w-3xl">{category.description}</p>
+        <nav aria-label="Subcategories" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-sans">
           {category.subcategories.map((s) => (
             <Link
               key={s.slug}
@@ -79,13 +81,13 @@ export default async function CategoryPage({
       </header>
 
       {lead ? (
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-10">
-          <div className="md:col-span-8">
-            <ArticleCard article={lead} variant="lead" />
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-14">
+          <div className="lg:col-span-8">
+            <ArticleCard article={lead} variant="lead" priority />
           </div>
-          <div className="md:col-span-4 md:border-l md:border-rule md:pl-6 space-y-5">
+          <div className="lg:col-span-4 lg:border-l lg:border-rule lg:pl-8 space-y-8">
             {rest.slice(0, 3).map((a) => (
-              <div key={a.id} className="rule-bottom pb-4">
+              <div key={a.id} className="rule-bottom pb-6 last:border-0">
                 <ArticleCard article={a} variant="compact" showImage={false} />
               </div>
             ))}
@@ -96,8 +98,8 @@ export default async function CategoryPage({
 
       {rest.length > 3 ? (
         <section>
-          <h2 className="kicker mb-6">More in {category.name}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-10">
+          <h2 className="kicker mb-8">More in {category.name}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-14">
             {rest.slice(3).map((a, i) => (
               <div key={a.id} className="contents">
                 <ArticleCard article={a} />
@@ -111,6 +113,6 @@ export default async function CategoryPage({
           </div>
         </section>
       ) : null}
-    </div>
+    </SectionStyle>
   );
 }

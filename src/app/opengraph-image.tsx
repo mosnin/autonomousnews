@@ -21,29 +21,33 @@ export default function HomeOg() {
           justifyContent: "space-between",
         }}
       >
-        <div
-          style={{
-            fontSize: 28,
-            textTransform: "uppercase",
-            letterSpacing: "0.18em",
-            color: "#5a5a5a",
-          }}
-        >
-          Techno Times
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 36, height: 8, background: "#0f5dd2" }} />
+          <div
+            style={{
+              fontSize: 22,
+              textTransform: "uppercase",
+              letterSpacing: "0.18em",
+              color: "#5a5a5a",
+            }}
+          >
+            Techno Times
+          </div>
         </div>
         <div
           style={{
-            fontSize: 110,
-            fontWeight: 700,
-            lineHeight: 1.05,
-            letterSpacing: "-0.02em",
+            fontSize: 124,
+            fontWeight: 800,
+            lineHeight: 0.95,
+            letterSpacing: "-0.035em",
           }}
         >
           {SITE.tagline}
         </div>
         <div
           style={{
-            fontSize: 26,
+            display: "flex",
+            fontSize: 24,
             color: "#5a5a5a",
             borderTop: "2px solid #121212",
             paddingTop: 18,

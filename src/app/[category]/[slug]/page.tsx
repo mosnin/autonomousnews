@@ -11,9 +11,12 @@ import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
 import ArticleDisclaimer from "@/components/ArticleDisclaimer";
+import ScrollProgressBar from "@/components/ScrollProgressBar";
+import ChapterDots from "@/components/ChapterDots";
+import SectionStyle from "@/components/SectionStyle";
 import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
-import { renderArticleBody } from "@/lib/articleBody";
+import { renderArticleBody, extractChapters } from "@/lib/articleBody";
 
 export const revalidate = 300;
 
@@ -110,25 +113,31 @@ export default async function CategorySlugPage({
   };
 
   const cat = findCategory(article.category_slug);
+  const chapters = extractChapters(article.body);
 
   return (
-    <article className="max-w-content mx-auto px-4 pt-8 pb-12">
+    <SectionStyle as="article" slug={article.category_slug} className="pt-6 md:pt-10 pb-12">
+      <ScrollProgressBar />
+      <ChapterDots chapters={chapters} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
       />
-      <header className="max-w-3xl mx-auto text-center mb-8">
+      <header className="max-w-prose mx-auto px-4 mb-8 md:mb-12 animate-fade-up">
+        <div className="section-ribbon" />
         {cat ? (
           <div className="kicker mb-3">
             <Link href={`/${cat.slug}`}>{cat.name}</Link>
           </div>
         ) : null}
-        <h1 className="headline text-3xl md:text-5xl mb-4">{article.title}</h1>
+        <h1 className="headline text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-4 leading-[1.05]">
+          {article.title}
+        </h1>
         {article.dek ? (
-          <p className="dek text-lg md:text-xl">{article.dek}</p>
+          <p className="dek text-lg md:text-2xl leading-snug">{article.dek}</p>
         ) : null}
-        <div className="byline mt-5 flex justify-center gap-4 flex-wrap">
-          <Link href={`/by/${article.author_slug}`} className="hover:underline">
+        <div className="byline mt-6 flex flex-wrap gap-x-4 gap-y-1 uppercase tracking-kicker text-[11px]">
+          <Link href={`/by/${article.author_slug}`} className="hover:text-ink text-ink">
             By {article.author_name}
           </Link>
           {article.published_at ? (
@@ -140,11 +149,14 @@ export default async function CategorySlugPage({
               })}
             </time>
           ) : null}
-          {article.read_minutes ? <span>{article.read_minutes} Min Read</span> : null}
+          {article.read_minutes ? <span>{article.read_minutes} min read</span> : null}
           {article.update_count > 0 && article.updated_at ? (
             <span title={article.updated_at}>
-              Updated {new Date(article.updated_at).toLocaleDateString("en-US", {
-                month: "long", day: "numeric", year: "numeric",
+              Updated{" "}
+              {new Date(article.updated_at).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
               })}
             </span>
           ) : null}
@@ -152,14 +164,14 @@ export default async function CategorySlugPage({
       </header>
 
       {article.cover_image_url ? (
-        <figure className="max-w-4xl mx-auto mb-8">
+        <figure className="max-w-content mx-auto px-0 md:px-8 mb-10 md:mb-14">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={article.cover_image_url}
             alt={article.cover_image_alt ?? ""}
             className="w-full h-auto"
           />
-          <figcaption className="byline mt-2 flex flex-wrap gap-3">
+          <figcaption className="byline mt-3 flex flex-wrap gap-3 px-4 md:px-0 max-w-prose mx-auto">
             {article.cover_image_alt ? <span>{article.cover_image_alt}</span> : null}
             {article.image_credit ? (
               article.image_source_url ? (
@@ -176,13 +188,13 @@ export default async function CategorySlugPage({
               )
             ) : null}
             {article.image_is_ai_generated ? (
-              <span className="uppercase tracking-widest">AI-generated illustration</span>
+              <span className="uppercase tracking-kicker">AI-generated illustration</span>
             ) : null}
           </figcaption>
         </figure>
       ) : null}
 
-      <div className="max-w-2xl mx-auto prose-article">
+      <div className="max-w-prose mx-auto px-4 prose-article">
         {renderArticleBody(article.body, {
           excludeHrefs: new Set(
             [
@@ -197,11 +209,11 @@ export default async function CategorySlugPage({
         })}
       </div>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-prose mx-auto px-4">
         <AdSlot slot="article-inline" />
       </div>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-prose mx-auto px-4">
         <ArticleDisclaimer
           categorySlug={article.category_slug}
           subcategorySlug={article.subcategory_slug}
@@ -212,7 +224,10 @@ export default async function CategorySlugPage({
           if (!author) return null;
           return (
             <aside className="mt-10 border-t border-rule pt-6 flex gap-4 items-start">
-              <div className="w-14 h-14 rounded-full bg-ink text-white flex items-center justify-center font-bold font-sans flex-shrink-0">
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center font-bold font-sans flex-shrink-0 text-white"
+                style={{ background: "var(--section)" }}
+              >
                 {author.initials}
               </div>
               <div>
@@ -229,7 +244,7 @@ export default async function CategorySlugPage({
       </div>
 
       {filteredRelated.length > 0 ? (
-        <section className="max-w-content mx-auto mt-12 pt-8 border-t border-rule">
+        <section className="max-w-content mx-auto px-4 md:px-8 mt-16 pt-10 border-t border-rule">
           <h2 className="kicker mb-6">More in {cat?.name ?? "News"}</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {filteredRelated.map((a) => (
@@ -238,7 +253,7 @@ export default async function CategorySlugPage({
           </div>
         </section>
       ) : null}
-    </article>
+    </SectionStyle>
   );
 }
 
@@ -252,15 +267,14 @@ function renderSubcategory(
   const rest = articles.slice(1);
 
   return (
-    <div className="max-w-content mx-auto px-4 pt-8 pb-12">
-      <header className="rule-bottom pb-6 mb-8">
-        <div className="kicker text-muted mb-2">
-          <Link href={`/${category.slug}`} className="hover:underline">
-            {category.name}
-          </Link>
+    <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+      <header className="rule-bottom pb-8 mb-10">
+        <div className="section-ribbon" />
+        <div className="kicker mb-2">
+          <Link href={`/${category.slug}`}>{category.name}</Link>
         </div>
-        <h1 className="headline text-4xl md:text-5xl mb-3">{subcategory.name}</h1>
-        <p className="dek max-w-3xl">{subcategory.description}</p>
+        <h1 className="headline text-4xl md:text-6xl mb-4">{subcategory.name}</h1>
+        <p className="dek max-w-3xl text-lg">{subcategory.description}</p>
       </header>
 
       {lead ? (
@@ -273,7 +287,7 @@ function renderSubcategory(
 
       {rest.length > 0 ? (
         <section>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-12">
             {rest.map((a, i) => (
               <div key={a.id} className="contents">
                 <ArticleCard article={a} />
@@ -287,6 +301,6 @@ function renderSubcategory(
           </div>
         </section>
       ) : null}
-    </div>
+    </SectionStyle>
   );
 }

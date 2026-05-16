@@ -6,7 +6,6 @@ import { AUTHORS } from "./authors";
 export type LinkTarget = {
   text: string;
   href: string;
-  // priority — longer phrases first, then authors > subcategories > categories
   weight: number;
 };
 
@@ -29,7 +28,6 @@ function buildTargets(): LinkTarget[] {
       weight: c.name.length * 3,
     });
   }
-  // Longest, most specific first so "Artificial Intelligence" beats "Intelligence".
   return targets.sort((a, b) => b.weight - a.weight);
 }
 
@@ -39,16 +37,19 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+}
+
 export type AutoLinkOptions = {
-  // Skip linking these — typically the current article's category/subcategory/author.
   excludeHrefs?: Set<string>;
-  // Maximum links to insert in this body. 5–8 is the SEO sweet spot.
   maxLinks?: number;
 };
 
-// Convert an article body string into React nodes, weaving in topic-cluster
-// links for the first occurrence of each known phrase. Single-paragraph
-// version; called once per paragraph by renderArticleBody().
 function autoLinkParagraph(
   text: string,
   state: { used: Set<string>; linksLeft: number; exclude: Set<string> }
@@ -100,8 +101,20 @@ function autoLinkParagraph(
   return nodes;
 }
 
-// Render an article body (paragraphs separated by blank lines, with optional
-// `## ` H2 lines) into React nodes with internal topic-cluster links.
+export type Chapter = { id: string; text: string };
+
+export function extractChapters(body: string): Chapter[] {
+  const chapters: Chapter[] = [];
+  for (const block of body.split(/\n\n+/)) {
+    const trimmed = block.trim();
+    if (trimmed.startsWith("## ")) {
+      const text = trimmed.slice(3).trim();
+      chapters.push({ id: slugify(text), text });
+    }
+  }
+  return chapters;
+}
+
 export function renderArticleBody(
   body: string,
   options: AutoLinkOptions = {}
@@ -116,15 +129,25 @@ export function renderArticleBody(
     const trimmed = para.trim();
     if (!trimmed) return null;
     if (trimmed.startsWith("## ")) {
+      const text = trimmed.slice(3).trim();
       return (
-        <h2 key={i}>{trimmed.slice(3)}</h2>
+        <h2 key={i} id={slugify(text)}>
+          {text}
+        </h2>
       );
     }
     if (trimmed.startsWith("### ")) {
-      return <h3 key={i}>{trimmed.slice(4)}</h3>;
+      return <h3 key={i}>{trimmed.slice(4).trim()}</h3>;
+    }
+    if (trimmed.startsWith(">> ")) {
+      return (
+        <p key={i} className="pull-quote">
+          {trimmed.slice(3).trim()}
+        </p>
+      );
     }
     if (trimmed.startsWith("> ")) {
-      return <blockquote key={i}>{trimmed.slice(2)}</blockquote>;
+      return <blockquote key={i}>{trimmed.slice(2).trim()}</blockquote>;
     }
     return <p key={i}>{autoLinkParagraph(trimmed, state)}</p>;
   });

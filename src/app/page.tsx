@@ -1,84 +1,72 @@
 import {
   getFeaturedArticles,
   getLatestArticles,
-  type ArticleSummary,
 } from "@/lib/articles";
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
 
-export const revalidate = 300; // 5 minutes
+export const revalidate = 300;
 
 export default async function HomePage() {
   let featured = await getFeaturedArticles(5);
   let latest = await getLatestArticles(24);
 
   if (featured.length === 0 && latest.length === 0) {
-    // Supabase not configured yet — show shell with placeholders.
     featured = PLACEHOLDER_ARTICLES.filter((a) => a.is_featured).slice(0, 4);
     latest = PLACEHOLDER_ARTICLES;
   }
 
-  const lead = featured[0] ?? latest[0];
-  const secondary = featured.slice(1, 4);
-  const rest = latest
-    .filter((a) => a.id !== lead?.id && !secondary.some((s) => s.id === a.id))
-    .slice(0, 12);
+  const hero = featured[0] ?? latest[0];
+  const next = featured.slice(1, 4);
+  const usedIds = new Set([hero?.id, ...next.map((a) => a.id)].filter(Boolean));
+  const river = latest.filter((a) => !usedIds.has(a.id));
 
-  if (!lead) {
+  if (!hero) {
     return (
-      <div className="max-w-content mx-auto px-4 py-20 text-center">
-        <h1 className="headline text-3xl mb-2">Coming soon</h1>
-        <p className="dek">No articles published yet.</p>
+      <div className="max-w-content mx-auto px-4 py-32 text-center">
+        <h1 className="headline text-4xl mb-3">Techno Times is warming up.</h1>
+        <p className="dek">Articles will begin to appear here within the hour.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-content mx-auto px-4 pt-6 pb-12">
-      <section className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
-        {/* Left column — secondary stack */}
-        <div className="md:col-span-3 order-2 md:order-1 md:border-r md:border-rule md:pr-6 space-y-5">
-          {secondary[0] ? (
-            <ArticleCard article={secondary[0]} variant="compact" showImage={false} />
-          ) : null}
-          {secondary[1] ? (
-            <div className="rule-top pt-4">
-              <ArticleCard article={secondary[1]} variant="compact" showImage={false} />
-            </div>
-          ) : null}
-        </div>
-
-        {/* Center — lead story */}
-        <div className="md:col-span-6 order-1 md:order-2">
-          <ArticleCard article={lead} variant="lead" />
-        </div>
-
-        {/* Right column */}
-        <div className="md:col-span-3 order-3 md:border-l md:border-rule md:pl-6 space-y-5">
-          {secondary[2] ? (
-            <ArticleCard article={secondary[2]} variant="compact" />
-          ) : null}
-          <AdSlot slot="home-rail-top" />
-        </div>
+    <div className="max-w-content mx-auto px-4 md:px-8 pt-6 md:pt-10 pb-16">
+      {/* Hero */}
+      <section className="mb-10 md:mb-16 animate-fade-up">
+        <ArticleCard article={hero} variant="hero" priority />
       </section>
 
-      <hr className="border-rule my-10" />
+      {/* What's next strip (only if we have featured items) */}
+      {next.length > 0 ? (
+        <section className="rule-top rule-bottom py-8 md:py-10 mb-10 md:mb-16">
+          <div className="kicker text-muted mb-5">What&rsquo;s next</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {next.map((a) => (
+              <ArticleCard key={a.id} article={a} variant="compact" showImage={false} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      {/* Latest grid */}
+      {/* River */}
       <section>
-        <div className="flex items-baseline justify-between mb-6">
-          <h2 className="kicker">Latest</h2>
-          <a href="/latest" className="text-sm underline text-accent">
-            See all
+        <div className="flex items-baseline justify-between mb-6 md:mb-8">
+          <h2 className="kicker text-muted">The latest</h2>
+          <a href="/feed.xml" className="text-sm font-sans text-muted hover:text-ink uppercase tracking-kicker">
+            RSS
           </a>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-10">
-          {rest.map((a: ArticleSummary, i) => (
-            <div key={a.id} className="contents">
-              <ArticleCard article={a} variant="default" />
+
+        <div className="space-y-10 md:space-y-12 max-w-4xl">
+          {river.map((a, i) => (
+            <div key={a.id}>
+              <div className="rule-top pt-8 first:pt-0 first:rule-top-0 md:first:border-t-0">
+                <ArticleCard article={a} variant="river" />
+              </div>
               {i === 5 ? (
-                <div className="md:col-span-3">
+                <div className="mt-10">
                   <AdSlot slot="home-mid-banner" format="horizontal" />
                 </div>
               ) : null}

@@ -3,105 +3,173 @@
 @tailwind utilities;
 
 :root {
-  --ink: #121212;
-  --rule: #e2e2e2;
-  --muted: #5a5a5a;
-  --accent: #326891;
-  --wash: #f7f7f5;
+  --ink:    18 18 18;
+  --paper:  255 255 255;
+  --rule:   229 229 229;
+  --muted:  90 90 90;
+  --accent: 15 93 210;
+  --wash:   247 247 245;
+  --section: #0f5dd2;
+  --section-text: #0f5dd2;
 }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:    240 240 240;
+    --paper:  16 16 18;
+    --rule:   38 38 42;
+    --muted:  160 160 165;
+    --accent: 126 184 255;
+    --wash:   24 24 27;
+    --section: #7eb8ff;
+    --section-text: #7eb8ff;
+  }
 }
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 body {
-  color: var(--ink);
-  background: #ffffff;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
 }
 
-.font-nameplate {
-  font-family: "UnifrakturCook", "UnifrakturMaguntia", "Old English Text MT", Georgia, serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+/* ---------- Type system ---------- */
+.nameplate {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
-
 .headline {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 700;
   line-height: 1.05;
-  letter-spacing: -0.01em;
-  color: var(--ink);
+  letter-spacing: -0.015em;
+  color: rgb(var(--ink));
 }
-
 .kicker {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans), Helvetica, sans-serif;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--section-text);
 }
-
-.byline {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.byline, .meta {
+  font-family: var(--font-sans), Helvetica, sans-serif;
+  font-size: 12px;
+  color: rgb(var(--muted));
+  letter-spacing: 0.02em;
 }
-
 .dek {
-  font-family: Georgia, "Times New Roman", serif;
-  color: var(--muted);
-  line-height: 1.45;
+  font-family: var(--font-serif), Georgia, serif;
+  color: rgb(var(--muted));
+  line-height: 1.4;
 }
 
-.rule-top {
-  border-top: 1px solid var(--rule);
+/* Reusable rule helpers */
+.rule-top    { border-top: 1px solid rgb(var(--rule)); }
+.rule-bottom { border-bottom: 1px solid rgb(var(--rule)); }
+
+/* Section accent ribbon used by image-forward cards */
+.section-ribbon {
+  display: inline-block;
+  height: 6px;
+  width: 36px;
+  background: var(--section);
+  margin-bottom: 8px;
 }
 
-.rule-bottom {
-  border-bottom: 1px solid var(--rule);
-}
+/* Story link hover effect (bold-digital, not muted) */
+.story-link { transition: color 140ms ease; }
+.story-link:hover .headline { color: var(--section-text); }
+.story-link:hover .dek      { color: rgb(var(--ink)); }
 
-.story-link {
-  transition: color 120ms ease;
+/* ---------- Long-form article ---------- */
+.prose-article {
+  font-family: var(--font-serif), Georgia, serif;
+  color: rgb(var(--ink));
 }
-.story-link:hover .headline,
-.story-link:hover .dek {
-  color: var(--accent);
-}
-
-/* Article prose */
 .prose-article p {
-  font-size: 1.0625rem;
-  line-height: 1.7;
-  margin-bottom: 1.125rem;
-  color: var(--ink);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  margin: 0 0 1.1rem;
 }
 .prose-article h2 {
-  font-family: Georgia, serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  margin: 2rem 0 0.75rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+  margin: 2.2rem 0 0.75rem;
 }
 .prose-article h3 {
-  font-family: Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 700;
-  font-size: 1.25rem;
-  margin: 1.5rem 0 0.5rem;
+  font-size: 1.3rem;
+  margin: 1.6rem 0 0.5rem;
 }
 .prose-article a {
-  color: var(--accent);
+  color: var(--section-text);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 .prose-article blockquote {
-  border-left: 3px solid var(--ink);
+  border-left: 3px solid var(--section);
   padding-left: 1rem;
   font-style: italic;
-  color: var(--muted);
+  color: rgb(var(--muted));
   margin: 1.25rem 0;
+}
+
+/* Drop cap on first paragraph */
+.prose-article > p:first-of-type::first-letter {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 800;
+  float: left;
+  font-size: 4.5rem;
+  line-height: 0.85;
+  padding: 0.35rem 0.55rem 0 0;
+  color: var(--section-text);
+}
+
+/* Pull quote — rendered when a line starts with ">> " */
+.pull-quote {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  font-size: 1.85rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: rgb(var(--ink));
+  border-top: 2px solid var(--section);
+  border-bottom: 1px solid rgb(var(--rule));
+  margin: 2rem 0;
+  padding: 1.2rem 0 1.2rem;
+  text-align: left;
+}
+.pull-quote::before {
+  content: "“";
+  font-size: 1.5em;
+  line-height: 0;
+  vertical-align: -0.4em;
+  margin-right: 0.05em;
+  color: var(--section);
+}
+
+/* ---------- Sticky scroll progress bar ---------- */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--section);
+  width: var(--scroll, 0%);
+  z-index: 60;
+  transition: width 120ms linear;
+}
+
+/* ---------- Mobile bottom tab bar safe area ---------- */
+@supports (padding: max(0px)) {
+  .bottom-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 }

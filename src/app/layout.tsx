@@ -3,6 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import MobileTabBar from "@/components/MobileTabBar";
+import { fontDisplay, fontSerif, fontSans } from "@/lib/fonts";
 import {
   SITE,
   ADSENSE_CLIENT_ID,
@@ -61,7 +63,10 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${fontDisplay.variable} ${fontSerif.variable} ${fontSans.variable}`}
+    >
       <head>
         {ADSENSE_CLIENT_ID ? (
           <Script
@@ -102,18 +107,17 @@ gtag('config', '${GA4_ID}', { anonymize_ip: true });`}
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }}
         />
       </head>
-      <body className="bg-white text-ink">
+      <body className="bg-paper text-ink pb-20 md:pb-0">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:bg-white focus:px-3 focus:py-1 focus:border focus:border-ink"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:bg-paper focus:px-3 focus:py-1 focus:border focus:border-ink"
         >
           Skip to main content
         </a>
         <SiteHeader />
-        <main id="main" className="bg-white">
-          {children}
-        </main>
+        <main id="main">{children}</main>
         <SiteFooter />
+        <MobileTabBar />
       </body>
     </html>
   );

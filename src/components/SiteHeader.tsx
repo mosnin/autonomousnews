@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { CATEGORIES } from "@/lib/taxonomy";
 import { SITE } from "@/lib/site";
 import MobileMenu from "./MobileMenu";
@@ -13,70 +16,89 @@ function formatDate(d: Date) {
 }
 
 export default function SiteHeader() {
-  const today = formatDate(new Date());
+  const [date, setDate] = useState<string>("");
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setDate(formatDate(new Date()));
+    const onScroll = () => setCollapsed(window.scrollY > 80);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="border-b border-rule bg-white">
-      {/* Top utility bar */}
-      <div className="hidden md:flex max-w-content mx-auto px-4 items-center justify-between text-[11px] uppercase tracking-widest pt-3">
+    <header
+      className={`sticky top-0 z-40 bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/70 transition-shadow ${
+        collapsed ? "shadow-[0_1px_0_0_rgb(var(--rule))]" : ""
+      }`}
+    >
+      {/* Utility strip — visible only when full */}
+      <div
+        className={`max-w-content mx-auto px-4 md:px-8 grid-cols-3 items-center text-[11px] uppercase tracking-kicker pt-3 ${
+          collapsed ? "hidden" : "hidden md:grid"
+        }`}
+      >
         <form action="/search" method="get" className="flex items-center gap-2">
-          <label htmlFor="hdr-search" className="sr-only">Search</label>
           <button type="submit" aria-label="Search" className="p-1">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
             </svg>
           </button>
           <input
-            id="hdr-search"
             type="search"
             name="q"
             placeholder="Search"
-            className="text-[12px] bg-transparent border-b border-rule focus:border-ink outline-none px-1 py-0.5 w-32 normal-case tracking-normal"
+            className="text-[12px] bg-transparent border-b border-rule focus:border-ink outline-none px-1 py-0.5 w-40 normal-case tracking-normal"
           />
         </form>
-        <nav aria-label="Sections" className="flex items-center gap-5 text-ink">
-          <Link href="/world" className="hover:underline">World</Link>
-          <Link href="/us" className="hover:underline">U.S.</Link>
-          <Link href="/business" className="hover:underline">Business</Link>
-          <Link href="/about-our-ai" className="hover:underline">About Our AI</Link>
-        </nav>
-        <div className="text-muted">An AI-assisted newsroom</div>
+        <div className="text-center text-muted">{date}</div>
+        <div className="flex justify-end gap-5 text-muted">
+          <Link href="/about-our-ai" className="hover:text-ink">About Our AI</Link>
+          <Link href="/feed.xml" className="hover:text-ink">RSS</Link>
+        </div>
       </div>
 
-      {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3">
-        <MobileMenu />
-        <Link href="/search" aria-label="Search" className="p-1">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      {/* Nameplate / wordmark */}
+      <div
+        className={`max-w-content mx-auto px-4 md:px-8 flex items-center justify-between ${
+          collapsed ? "py-2" : "py-4 md:py-6"
+        }`}
+      >
+        <div className="md:hidden">
+          <MobileMenu />
+        </div>
+        <Link href="/" className="flex-1 md:flex-none text-center md:text-left">
+          <span
+            className={`nameplate inline-block text-ink ${
+              collapsed ? "text-2xl md:text-3xl" : "text-4xl md:text-6xl"
+            }`}
+          >
+            {SITE.name}
+          </span>
+        </Link>
+        <Link
+          href="/search"
+          aria-label="Search"
+          className="md:hidden p-2 text-ink"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="7" />
             <path d="m21 21-4.3-4.3" />
           </svg>
         </Link>
       </div>
 
-      {/* Nameplate */}
-      <div className="max-w-content mx-auto px-4 pt-2 pb-3 md:pt-1 md:pb-4 text-center relative">
-        <div className="hidden md:block absolute left-4 top-1 text-[12px] leading-tight text-ink">
-          <div>{today}</div>
-          <Link href="/todays-paper" className="underline-offset-2 hover:underline">
-            Today&rsquo;s Paper
-          </Link>
-        </div>
-        <Link href="/" className="inline-block">
-          <h1 className="font-nameplate text-[40px] md:text-[64px] leading-none">
-            {SITE.name}
-          </h1>
-        </Link>
-      </div>
-
-      {/* Primary nav */}
-      <nav aria-label="Sections" className="border-t border-rule">
-        <ul className="max-w-content mx-auto px-2 md:px-4 flex items-center gap-1 md:gap-5 overflow-x-auto text-[14px] md:text-[15px] py-2.5 md:py-3 whitespace-nowrap">
+      {/* Primary section nav (desktop) */}
+      <nav aria-label="Sections" className="hidden md:block border-t border-rule">
+        <ul className="max-w-content mx-auto px-4 md:px-8 flex items-center gap-1 lg:gap-2 overflow-x-auto text-[14px] py-2 whitespace-nowrap">
           {CATEGORIES.map((c) => (
             <li key={c.slug}>
               <Link
                 href={`/${c.slug}`}
-                className="px-2 py-1 text-ink hover:text-accent hover:underline underline-offset-4 font-serif"
+                className="px-3 py-1 text-ink hover:text-accent font-sans font-medium tracking-wide"
+                style={{ ["--section" as never]: `var(--section)` }}
               >
                 {c.name}
               </Link>
