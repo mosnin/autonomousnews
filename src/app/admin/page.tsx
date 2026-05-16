@@ -97,6 +97,19 @@ export default async function AdminOverview() {
       </section>
 
       <section>
+        <h2 className="text-lg font-bold mb-3">Tools</h2>
+        <div className="bg-white border border-rule p-4 text-sm">
+          <Link href="/admin/links" className="text-accent underline">
+            Internal-link quality dashboard
+          </Link>
+          <span className="text-muted">
+            {" "}
+            — top inbound, orphans, and over-linked articles.
+          </span>
+        </div>
+      </section>
+
+      <section>
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-lg font-bold">Recent agent runs</h2>
           <Link href="/admin/runs" className="text-sm underline">
