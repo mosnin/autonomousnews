@@ -139,6 +139,21 @@ export async function POST(req: NextRequest) {
     }
     articleId = existing.id;
     canonicalSlug = existing.slug;
+
+    // Record a story_updates entry so readers see a timeline of revisions.
+    const summary = body.update_summary
+      ? String(body.update_summary).slice(0, 280)
+      : body.dek
+      ? String(body.dek).slice(0, 280)
+      : "Updated with new reporting.";
+    await supabase
+      .from("story_updates")
+      .insert({
+        article_id: articleId,
+        summary,
+        run_id: body.run_id ?? null,
+      })
+      .then(() => undefined, () => undefined);
   } else {
     // ---- FRESH INSERT ----------------------------------------------------
     const insert = {

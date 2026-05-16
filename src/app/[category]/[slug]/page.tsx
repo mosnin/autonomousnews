@@ -6,6 +6,7 @@ import {
   getArticleBySlug,
   getArticlesBySubcategory,
   getRelatedArticles,
+  getStoryUpdates,
 } from "@/lib/articles";
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
@@ -14,10 +15,30 @@ import ArticleDisclaimer from "@/components/ArticleDisclaimer";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ChapterDots from "@/components/ChapterDots";
 import SectionStyle from "@/components/SectionStyle";
+import ArticleToolbar from "@/components/ArticleToolbar";
+import ViewPing from "@/components/ViewPing";
+import TopicChips from "@/components/TopicChips";
+import SourcesBlock from "@/components/SourcesBlock";
+import StoryUpdatesTimeline from "@/components/StoryUpdatesTimeline";
+import LiveBadge from "@/components/LiveBadge";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
 import { renderArticleBody, extractChapters } from "@/lib/articleBody";
 import { breadcrumbListLd } from "@/lib/jsonld";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+async function getReactionCounts(articleId: string): Promise<{ up: number; down: number }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { up: 0, down: 0 };
+  const { data } = await supabase
+    .from("article_reactions")
+    .select("thumbs_up, thumbs_down")
+    .eq("article_id", articleId)
+    .maybeSingle();
+  const row = data as { thumbs_up?: number; thumbs_down?: number } | null;
+  return { up: row?.thumbs_up ?? 0, down: row?.thumbs_down ?? 0 };
+}
 
 export const revalidate = 300;
 
@@ -115,6 +136,11 @@ export default async function CategorySlugPage({
 
   const cat = findCategory(article.category_slug);
   const chapters = extractChapters(article.body);
+  const [reactions, updates] = await Promise.all([
+    getReactionCounts(article.id),
+    getStoryUpdates(article.id),
+  ]);
+  const articleUrl = `${SITE.url}/${article.category_slug}/${article.slug}`;
 
   const breadcrumbs = breadcrumbListLd([
     { name: "Home", url: "/" },
@@ -142,11 +168,14 @@ export default async function CategorySlugPage({
       />
       <header className="max-w-prose mx-auto px-4 mb-8 md:mb-12 animate-fade-up">
         <div className="section-ribbon" />
-        {cat ? (
-          <div className="kicker mb-3">
-            <Link href={`/${cat.slug}`}>{cat.name}</Link>
-          </div>
-        ) : null}
+        <div className="flex items-center gap-3 mb-3">
+          {cat ? (
+            <div className="kicker">
+              <Link href={`/${cat.slug}`}>{cat.name}</Link>
+            </div>
+          ) : null}
+          {article.is_live ? <LiveBadge /> : null}
+        </div>
         <h1 className="headline text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-4 leading-[1.05]">
           {article.title}
         </h1>
@@ -211,6 +240,18 @@ export default async function CategorySlugPage({
         </figure>
       ) : null}
 
+      <ViewPing articleId={article.id} />
+
+      <div className="max-w-prose mx-auto px-4">
+        <ArticleToolbar
+          articleId={article.id}
+          title={article.title}
+          url={articleUrl}
+          initialUp={reactions.up}
+          initialDown={reactions.down}
+        />
+      </div>
+
       <div className="max-w-prose mx-auto px-4 prose-article">
         {renderArticleBody(article.body, {
           excludeHrefs: new Set(
@@ -227,6 +268,9 @@ export default async function CategorySlugPage({
       </div>
 
       <div className="max-w-prose mx-auto px-4">
+        <SourcesBlock urls={article.source_urls ?? []} />
+        <TopicChips tags={article.tags ?? []} />
+        <StoryUpdatesTimeline updates={updates} />
         <AdSlot slot="article-inline" />
       </div>
 
@@ -258,6 +302,9 @@ export default async function CategorySlugPage({
             </aside>
           );
         })()}
+        <div className="mt-12">
+          <NewsletterSignup source="article-inline" />
+        </div>
       </div>
 
       {filteredRelated.length > 0 ? (

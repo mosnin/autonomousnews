@@ -10,6 +10,16 @@ export type Author = {
   subBeat?: string[];
   // Stable initials used in avatar placeholders.
   initials: string;
+  // Month/year the reporter joined Techno Times — drives "Covering X since"
+  // tenure copy on profile + article pages.
+  joinedAt: string; // YYYY-MM
+  // Optional social handles (omit to render nothing).
+  links?: {
+    x?: string;          // 'mira.chen' -> https://x.com/mira.chen
+    linkedin?: string;   // 'mira-chen'
+    mastodon?: string;   // full URL (Mastodon instances vary)
+    web?: string;
+  };
 };
 
 export const AUTHORS: Author[] = [
@@ -22,6 +32,8 @@ export const AUTHORS: Author[] = [
     beat: ["technology"],
     subBeat: ["artificial-intelligence", "software", "big-tech"],
     initials: "MC",
+    joinedAt: "2024-06",
+    links: { x: "technotimes_mira", linkedin: "mira-chen" },
   },
   {
     slug: "jordan-park",
@@ -32,6 +44,8 @@ export const AUTHORS: Author[] = [
     beat: ["politics", "us", "world"],
     subBeat: ["foreign-policy", "white-house", "conflicts"],
     initials: "JP",
+    joinedAt: "2023-09",
+    links: { x: "jordan_park_tt", linkedin: "jordan-park" },
   },
   {
     slug: "anya-patel",
@@ -42,6 +56,8 @@ export const AUTHORS: Author[] = [
     beat: ["science"],
     subBeat: ["space", "robotics", "research"],
     initials: "AP",
+    joinedAt: "2024-01",
+    links: { x: "anyapatel_space", linkedin: "anya-patel" },
   },
   {
     slug: "sam-reyes",
@@ -52,6 +68,8 @@ export const AUTHORS: Author[] = [
     beat: ["business"],
     subBeat: ["markets", "economy", "dealbook"],
     initials: "SR",
+    joinedAt: "2022-11",
+    links: { x: "sam_reyes", linkedin: "sam-reyes" },
   },
   {
     slug: "lucas-brandt",
@@ -62,6 +80,8 @@ export const AUTHORS: Author[] = [
     beat: ["technology", "us"],
     subBeat: ["cybersecurity", "justice"],
     initials: "LB",
+    joinedAt: "2024-03",
+    links: { x: "lbrandt_cyber", linkedin: "lucas-brandt" },
   },
   {
     slug: "hanna-mueller",
@@ -72,6 +92,8 @@ export const AUTHORS: Author[] = [
     beat: ["world", "politics"],
     subBeat: ["europe", "foreign-policy"],
     initials: "HM",
+    joinedAt: "2023-04",
+    links: { x: "hmueller_eu", linkedin: "hanna-mueller" },
   },
   {
     slug: "yumi-tanaka",
@@ -82,6 +104,8 @@ export const AUTHORS: Author[] = [
     beat: ["world", "business", "technology"],
     subBeat: ["asia-pacific"],
     initials: "YT",
+    joinedAt: "2023-10",
+    links: { x: "yumi_tanaka_tt", linkedin: "yumi-tanaka" },
   },
   {
     slug: "marcus-aoki",
@@ -92,6 +116,8 @@ export const AUTHORS: Author[] = [
     beat: ["climate", "science"],
     subBeat: ["crisis", "energy", "environment"],
     initials: "MA",
+    joinedAt: "2024-02",
+    links: { x: "marcus_climate", linkedin: "marcus-aoki" },
   },
   {
     slug: "sofia-ruiz",
@@ -102,6 +128,8 @@ export const AUTHORS: Author[] = [
     beat: ["health", "science"],
     subBeat: ["public-health", "medicine", "wellness"],
     initials: "SR",
+    joinedAt: "2024-04",
+    links: { x: "sofia_ruiz_md", linkedin: "sofia-ruiz" },
   },
   {
     slug: "theo-kane",
@@ -111,6 +139,8 @@ export const AUTHORS: Author[] = [
       "Theo Kane covers the leagues, athletes, and big moments that move the sports world.",
     beat: ["sports"],
     initials: "TK",
+    joinedAt: "2022-08",
+    links: { x: "theo_kane", linkedin: "theo-kane" },
   },
   {
     slug: "beatrice-lavigne",
@@ -121,6 +151,8 @@ export const AUTHORS: Author[] = [
     beat: ["arts", "culture"],
     subBeat: ["film", "television", "celebrity"],
     initials: "BL",
+    joinedAt: "2023-06",
+    links: { x: "b_lavigne", linkedin: "beatrice-lavigne" },
   },
   {
     slug: "devin-okafor",
@@ -131,6 +163,8 @@ export const AUTHORS: Author[] = [
     beat: ["culture", "technology"],
     subBeat: ["internet-culture", "internet"],
     initials: "DO",
+    joinedAt: "2024-05",
+    links: { x: "devin_okafor", linkedin: "devin-okafor" },
   },
   {
     slug: "priya-shah",
@@ -141,6 +175,8 @@ export const AUTHORS: Author[] = [
     beat: ["technology"],
     subBeat: ["software", "internet"],
     initials: "PS",
+    joinedAt: "2024-07",
+    links: { x: "priyashah_dev", linkedin: "priya-shah" },
   },
   {
     slug: "noah-whitfield",
@@ -150,6 +186,8 @@ export const AUTHORS: Author[] = [
       "Noah Whitfield writes about housing markets, the people buying and renting in them, and the policies that shape both.",
     beat: ["real-estate", "business"],
     initials: "NW",
+    joinedAt: "2023-02",
+    links: { x: "noah_whitfield", linkedin: "noah-whitfield" },
   },
   {
     slug: "elena-kovac",
@@ -159,6 +197,8 @@ export const AUTHORS: Author[] = [
       "Elena Kovac writes for the Techno Times editorial board on global affairs, the economy, and the tensions between them.",
     beat: ["opinion", "world", "business"],
     initials: "EK",
+    joinedAt: "2022-05",
+    links: { x: "elena_kovac", linkedin: "elena-kovac" },
   },
 ];
 

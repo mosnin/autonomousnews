@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ArticleSummary } from "@/lib/articles";
 import { findCategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
+import LiveBadge from "./LiveBadge";
 import type { CSSProperties } from "react";
 
 type Variant = "hero" | "lead" | "default" | "compact" | "headline-only" | "river";
@@ -116,7 +117,10 @@ export default function ArticleCard({
         ) : null}
         <div className="max-w-3xl">
           <div className="section-ribbon" />
-          <div className="kicker mb-3">{kicker}</div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="kicker">{kicker}</div>
+            {article.is_live ? <LiveBadge /> : null}
+          </div>
           <h2 className="headline text-3xl sm:text-5xl md:text-6xl lg:text-7xl mb-4">
             {article.title}
           </h2>
@@ -176,7 +180,10 @@ export default function ArticleCard({
       ) : (
         <div className="section-ribbon" />
       )}
-      <div className="kicker mb-1.5">{kicker}</div>
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="kicker">{kicker}</div>
+        {article.is_live ? <LiveBadge size="sm" /> : null}
+      </div>
       <h3 className="headline text-xl md:text-2xl mb-1.5">{article.title}</h3>
       {article.excerpt ? (
         <p className="dek text-sm md:text-base line-clamp-3">{article.excerpt}</p>

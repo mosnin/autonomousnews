@@ -16,6 +16,7 @@ export type ArticleSummary = Pick<
   | "author_slug"
   | "is_breaking"
   | "is_featured"
+  | "is_live"
   | "published_at"
   | "read_minutes"
 >;
@@ -34,6 +35,7 @@ const SUMMARY_COLUMNS = [
   "author_slug",
   "is_breaking",
   "is_featured",
+  "is_live",
   "published_at",
   "read_minutes",
 ].join(", ");
@@ -116,6 +118,73 @@ export async function getArticlesByAuthor(
     .limit(limit);
   if (error) return [];
   return (data ?? []) as unknown as ArticleSummary[];
+}
+
+export async function getMostReadArticles(limit = 5): Promise<ArticleSummary[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("most_read_articles")
+    .select(SUMMARY_COLUMNS)
+    .limit(limit);
+  if (error) return [];
+  return (data ?? []) as unknown as ArticleSummary[];
+}
+
+export async function getArticlesByTag(tag: string, limit = 30): Promise<ArticleSummary[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("articles")
+    .select(SUMMARY_COLUMNS)
+    .eq("status", "published")
+    .contains("tags", [tag])
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return (data ?? []) as unknown as ArticleSummary[];
+}
+
+export async function getLiveArticles(limit = 5): Promise<ArticleSummary[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("articles")
+    .select(SUMMARY_COLUMNS)
+    .eq("status", "published")
+    .eq("is_live", true)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return (data ?? []) as unknown as ArticleSummary[];
+}
+
+export async function getBreakingHeadlines(limit = 5): Promise<ArticleSummary[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("articles")
+    .select(SUMMARY_COLUMNS)
+    .eq("status", "published")
+    .or("is_breaking.eq.true,is_live.eq.true")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return (data ?? []) as unknown as ArticleSummary[];
+}
+
+export async function getStoryUpdates(articleId: string): Promise<
+  Array<{ id: number; summary: string; created_at: string }>
+> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("story_updates")
+    .select("id, summary, created_at")
+    .eq("article_id", articleId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return (data ?? []) as Array<{ id: number; summary: string; created_at: string }>;
 }
 
 export async function searchArticles(

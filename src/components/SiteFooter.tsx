@@ -43,6 +43,8 @@ export default function SiteFooter() {
           <span>© {year} {SITE.name}</span>
           <div className="flex flex-wrap gap-4">
             <Link href="/about-our-ai">About Our AI</Link>
+            <Link href="/editors-picks">Editor&rsquo;s Picks</Link>
+            <Link href="/saved">Saved</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/sitemap.xml">Sitemap</Link>

@@ -38,6 +38,50 @@ export type Article = {
   prompt_tokens: number | null;
   completion_tokens: number | null;
   generation_cost_usd: number | null;
+  // Phase 4 additions
+  is_live: boolean;
+};
+
+export type ArticleViews = {
+  article_id: string;
+  views_total: number;
+  views_24h: number;
+  window_start: string;
+  last_view_at: string;
+};
+
+export type ArticleReactions = {
+  article_id: string;
+  thumbs_up: number;
+  thumbs_down: number;
+  updated_at: string;
+};
+
+export type NewsletterSubscriber = {
+  email: string;
+  source: string | null;
+  confirmed: boolean;
+  unsubscribed: boolean;
+  created_at: string;
+};
+
+export type StoryUpdate = {
+  id: number;
+  article_id: string;
+  summary: string;
+  run_id: string | null;
+  created_at: string;
+};
+
+export type AuthorProfile = {
+  slug: string;
+  portrait_url: string | null;
+  joined_at: string | null;
+  link_x: string | null;
+  link_linkedin: string | null;
+  link_mastodon: string | null;
+  link_web: string | null;
+  updated_at: string;
 };
 
 export type AgentRunStatus =
@@ -118,8 +162,15 @@ export type Database = {
       agent_run_articles: TableHelper<AgentRunArticle, "run_id" | "article_id">;
       authors: TableHelper<AuthorRow, "slug" | "name" | "title" | "bio">;
       cost_ledger: TableHelper<CostLedgerRow, "day">;
+      article_views: TableHelper<ArticleViews, "article_id">;
+      article_reactions: TableHelper<ArticleReactions, "article_id">;
+      newsletter_subscribers: TableHelper<NewsletterSubscriber, "email">;
+      story_updates: TableHelper<StoryUpdate, "article_id" | "summary">;
+      author_profiles: TableHelper<AuthorProfile, "slug">;
     };
-    Views: Record<string, never>;
+    Views: {
+      most_read_articles: { Row: Article & { views_24h: number }; Relationships: [] };
+    };
     Functions: {
       add_run_cost: {
         Args: {
@@ -128,6 +179,14 @@ export type Database = {
           p_articles: number;
           p_runs: number;
         };
+        Returns: undefined;
+      };
+      record_article_view: {
+        Args: { p_article_id: string };
+        Returns: undefined;
+      };
+      record_article_reaction: {
+        Args: { p_article_id: string; p_value: string };
         Returns: undefined;
       };
     };

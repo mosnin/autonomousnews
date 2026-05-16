@@ -403,6 +403,34 @@ export async function getHealthChecks(): Promise<Check[]> {
       level: "ok",
       detail: "/privacy and /terms are live",
     })),
+    runCheck(async () => {
+      if (!supabase)
+        return {
+          id: "engagement-tables",
+          group: "Database",
+          label: "Engagement tables (0004)",
+          level: "fail",
+          detail: "supabase client unavailable",
+        };
+      const { error } = await supabase
+        .from("article_views")
+        .select("article_id", { head: true, count: "exact" });
+      if (error)
+        return {
+          id: "engagement-tables",
+          group: "Database",
+          label: "Engagement tables (0004)",
+          level: "fail",
+          detail: `migration 0004 not applied? ${error.message}`,
+        };
+      return {
+        id: "engagement-tables",
+        group: "Database",
+        label: "Engagement tables (0004)",
+        level: "ok",
+        detail: "article_views / reactions / story_updates / newsletter ready",
+      };
+    }),
   ];
 
   return Promise.all(checks);
