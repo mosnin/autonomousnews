@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticUrls: MetadataRoute.Sitemap = [
     { url: `${base}/`, lastModified: now, changeFrequency: "hourly", priority: 1 },
     { url: `${base}/about-our-ai`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${base}/feed.xml`, lastModified: now, changeFrequency: "hourly", priority: 0.5 },
   ];
 
   const categoryUrls: MetadataRoute.Sitemap = CATEGORIES.flatMap((c) => [

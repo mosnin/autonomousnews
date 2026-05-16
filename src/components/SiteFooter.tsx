@@ -42,7 +42,8 @@ export default function SiteFooter() {
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms of Service</Link>
             <Link href="/sitemap.xml">Sitemap</Link>
-            <Link href="/rss">RSS</Link>
+            <Link href="/feed.xml">RSS</Link>
+            <Link href="/about-our-ai">About Our AI</Link>
           </div>
         </div>
       </div>

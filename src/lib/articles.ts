@@ -149,6 +149,62 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   return data as Article;
 }
 
+// Tag-aware "related stories": same category, ranked by tag overlap with the
+// source article. Falls back to recency when no tags match.
+export async function getRelatedArticles(
+  article: {
+    id: string;
+    category_slug: string;
+    subcategory_slug: string | null;
+    tags: string[];
+  },
+  limit = 4
+): Promise<ArticleSummary[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+
+  // Pull a wider candidate pool from the same category, then score by tag
+  // overlap in JS. This avoids GIN-only operators that depend on extensions
+  // not always present on Supabase free tier.
+  const { data, error } = await supabase
+    .from("articles")
+    .select(`${SUMMARY_COLUMNS}, tags`)
+    .eq("status", "published")
+    .eq("category_slug", article.category_slug)
+    .neq("id", article.id)
+    .order("published_at", { ascending: false })
+    .limit(40);
+  if (error || !data) return [];
+
+  const rows = data as unknown as Array<ArticleSummary & { tags: string[] }>;
+  const tagSet = new Set(article.tags ?? []);
+
+  const scored = rows.map((r) => {
+    const overlap = (r.tags ?? []).reduce(
+      (n, t) => n + (tagSet.has(t) ? 1 : 0),
+      0
+    );
+    const sameSub =
+      article.subcategory_slug != null &&
+      r.subcategory_slug === article.subcategory_slug
+        ? 1
+        : 0;
+    return { row: r, score: overlap * 10 + sameSub };
+  });
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const ta = a.row.published_at ? Date.parse(a.row.published_at) : 0;
+    const tb = b.row.published_at ? Date.parse(b.row.published_at) : 0;
+    return tb - ta;
+  });
+
+  return scored.slice(0, limit).map(({ row }) => {
+    const { tags: _tags, ...rest } = row;
+    return rest as ArticleSummary;
+  });
+}
+
 export async function getRecentArticlesForNewsSitemap(
   hours = 48
 ): Promise<Pick<Article, "slug" | "title" | "category_slug" | "published_at" | "seo_keywords">[]> {

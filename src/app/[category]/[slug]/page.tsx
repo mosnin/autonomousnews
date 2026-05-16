@@ -5,7 +5,7 @@ import { findCategory, findSubcategory } from "@/lib/taxonomy";
 import {
   getArticleBySlug,
   getArticlesBySubcategory,
-  getArticlesByCategory,
+  getRelatedArticles,
 } from "@/lib/articles";
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
@@ -13,6 +13,7 @@ import AdSlot from "@/components/AdSlot";
 import ArticleDisclaimer from "@/components/ArticleDisclaimer";
 import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
+import { renderArticleBody } from "@/lib/articleBody";
 
 export const revalidate = 300;
 
@@ -79,8 +80,15 @@ export default async function CategorySlugPage({
   const article = await getArticleBySlug(slug);
   if (!article || article.category_slug !== category) notFound();
 
-  const related = await getArticlesByCategory(article.category_slug, 6);
-  const filteredRelated = related.filter((a) => a.id !== article.id).slice(0, 4);
+  const filteredRelated = await getRelatedArticles(
+    {
+      id: article.id,
+      category_slug: article.category_slug,
+      subcategory_slug: article.subcategory_slug,
+      tags: article.tags,
+    },
+    4
+  );
 
   const articleLd = {
     "@context": "https://schema.org",
@@ -175,9 +183,18 @@ export default async function CategorySlugPage({
       ) : null}
 
       <div className="max-w-2xl mx-auto prose-article">
-        {article.body.split("\n\n").map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
+        {renderArticleBody(article.body, {
+          excludeHrefs: new Set(
+            [
+              `/${article.category_slug}`,
+              article.subcategory_slug
+                ? `/${article.category_slug}/${article.subcategory_slug}`
+                : null,
+              `/by/${article.author_slug}`,
+            ].filter((v): v is string => !!v)
+          ),
+          maxLinks: 6,
+        })}
       </div>
 
       <div className="max-w-2xl mx-auto">

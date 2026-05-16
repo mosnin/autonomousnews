@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   applicationName: SITE.name,
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: SITE.name,
@@ -39,6 +38,12 @@ export const metadata: Metadata = {
   verification: GSC_VERIFICATION
     ? { google: GSC_VERIFICATION }
     : undefined,
+  alternates: {
+    canonical: "/",
+    types: {
+      "application/rss+xml": [{ url: "/feed.xml", title: `${SITE.name} — Latest` }],
+    },
+  },
 };
 
 export default function RootLayout({

@@ -25,7 +25,14 @@ export async function generateMetadata({
   return {
     title: `${category.name} News`,
     description: category.description,
-    alternates: { canonical: `/${category.slug}` },
+    alternates: {
+      canonical: `/${category.slug}`,
+      types: {
+        "application/rss+xml": [
+          { url: `/${category.slug}/feed.xml`, title: `${SITE.name} — ${category.name}` },
+        ],
+      },
+    },
     openGraph: {
       title: `${category.name} News — ${SITE.name}`,
       description: category.description,
