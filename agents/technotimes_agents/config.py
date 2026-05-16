@@ -35,6 +35,11 @@ class Config:
     articles_per_run_max: int
     evergreen_ratio: float  # 0..1
 
+    # When true: fetch trends + ask the editor for picks, but skip the
+    # writer + image + publish steps. Logs what the run *would* do so you
+    # can validate the pipeline without burning OpenAI / DALL-E tokens.
+    dry_run: bool = False
+
     @classmethod
     def from_env(cls) -> "Config":
         return cls(
@@ -50,4 +55,5 @@ class Config:
             articles_per_run_min=int(os.environ.get("ARTICLES_MIN", "3")),
             articles_per_run_max=int(os.environ.get("ARTICLES_MAX", "5")),
             evergreen_ratio=float(os.environ.get("EVERGREEN_RATIO", "0.3")),
+            dry_run=os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes"),
         )

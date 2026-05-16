@@ -82,14 +82,53 @@ Generate these once and reuse:
    modal deploy modal_app.py
    ```
    Modal will run `hourly_run()` once per hour on its own clock.
-4. Smoke-test one manual run:
+4. **Dry-run smoke test** (recommended before the first real run — costs
+   only the editor agent's tokens, no writer or DALL·E calls):
+   ```bash
+   modal run modal_app.py --env DRY_RUN=1
+   ```
+   Open `/admin/runs` and confirm a `succeeded` run appears with
+   `metadata.cancelled_reason = null`, `articles_created = 0`, and log
+   entries listing the topics the editor would have picked. If anything
+   here is wrong, fix it before spending money on a real run.
+5. **First real run:**
    ```bash
    modal run modal_app.py
    ```
-   Then open `/admin/runs` and confirm the run appears with `succeeded`
-   status and at least one article inserted.
+   Watch `/admin/runs` for a row with `articles_created ≥ 1` and
+   `status = succeeded`. Open one of the articles in the public site
+   from the admin row.
 
-## 5. AdSense
+## 5. Validate end-to-end with the preflight CLI
+
+Independent of Modal, you can prove the whole publish loop works:
+
+```bash
+SITE_URL=https://yourdomain.com \
+ADMIN_API_KEY=<same value you put in Vercel + Modal> \
+npm run preflight -- --publish
+```
+
+The script inserts a fixture article, confirms it renders on the public
+site, runs the living-update path on the same `topic_key`, exercises the
+cost-ledger RPC, and pings the OG/icon endpoints. It prints a fixture id
+at the end so you can archive it from `/admin/articles/<id>`.
+
+## 6. Seed sample articles (optional, makes the site look real on day one)
+
+```bash
+SITE_URL=https://yourdomain.com \
+ADMIN_API_KEY=<your key> \
+npm run seed
+```
+
+This publishes 10 well-crafted sample articles across Tech / Business /
+Science / World / Politics / Climate / Sports / Culture so the homepage
+and all the custom landings have real content before the Modal worker's
+first cron tick. Re-running the script triggers the living-update path
+(idempotent — no duplicates).
+
+## 7. AdSense
 
 1. Apply at <https://www.google.com/adsense/start/>. Use your domain.
 2. Approval requires the site to look like a real publication — landing
@@ -100,7 +139,7 @@ Generate these once and reuse:
 3. Once approved, set `NEXT_PUBLIC_ADSENSE_CLIENT_ID` in Vercel and
    replace `XXXXXXXXXXXXXXXX` in `public/ads.txt` with your publisher id.
 
-## 6. Google Search Console + IndexNow
+## 8. Google Search Console + IndexNow
 
 1. Add your domain to **Google Search Console**
    (<https://search.google.com/search-console>).
@@ -123,7 +162,7 @@ Generate these once and reuse:
      (Use cautiously — this also catches `ads.txt`, so prefer the static
      file approach.)
 
-## 7. Analytics
+## 9. Analytics
 
 - **GA4**: Create a property, copy the Measurement ID into
   `NEXT_PUBLIC_GA4_ID`. The root layout already injects the gtag script
@@ -131,7 +170,7 @@ Generate these once and reuse:
 - **Plausible** (optional, privacy-friendly second source): set
   `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`. Sign up at <https://plausible.io>.
 
-## 8. Day-of-launch checks
+## 10. Day-of-launch checks
 
 - [ ] `https://yourdomain.com/` → loads and shows real articles
 - [ ] `https://yourdomain.com/sitemap.xml` → 200, lists every URL
@@ -145,7 +184,7 @@ Generate these once and reuse:
   shows the auto-generated OG image
 - [ ] `/admin` budget banner reflects today's spend
 
-## 9. Things that should NOT be skipped
+## 11. Things that should NOT be skipped
 
 - **Privacy policy** + **Terms of Service** pages. AdSense requires them.
   Currently the footer links to `/privacy` and `/terms` but those pages

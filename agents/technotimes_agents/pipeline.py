@@ -475,6 +475,23 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
             )
             total_cost += editor_cost
 
+            if cfg.dry_run:
+                await log.info(
+                    "dry-run: skipping writer + image + publish",
+                    selections=[
+                        {
+                            "title": s["trend"].title,
+                            "category": s["category_slug"],
+                            "subcategory": s["subcategory_slug"],
+                            "is_breaking": s["is_breaking"],
+                            "existing_topic_key": s.get("existing_topic_key"),
+                        }
+                        for s in selections
+                    ],
+                )
+                # Mark the run as a successful dry-run with no articles.
+                selections = []
+
             for sel in selections:
                 # Mid-run safety: if we've already spent the remaining budget,
                 # stop before doing more writer or image calls.
