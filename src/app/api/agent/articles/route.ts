@@ -124,6 +124,10 @@ export async function POST(req: NextRequest) {
       generation_cost_usd: body.generation_cost_usd ?? null,
       update_count: (existing.update_count ?? 0) + 1,
       last_updated_by_run: body.run_id ?? null,
+      focus_keyword: body.focus_keyword ?? null,
+      long_tail_keywords: body.long_tail_keywords ?? [],
+      power_word: body.power_word ?? null,
+      faq: body.faq ?? null,
       // Only set published_at the first time we transition to published.
       published_at:
         existing.published_at ??
@@ -190,6 +194,11 @@ export async function POST(req: NextRequest) {
       generation_cost_usd: body.generation_cost_usd ?? null,
       last_updated_by_run: body.run_id ?? null,
       ai_disclosed: body.ai_disclosed ?? true,
+      focus_keyword: body.focus_keyword ?? null,
+      long_tail_keywords: body.long_tail_keywords ?? [],
+      power_word: body.power_word ?? null,
+      faq: body.faq ?? null,
+      is_live: !!body.is_live,
     };
 
     const { data: inserted, error } = await supabase

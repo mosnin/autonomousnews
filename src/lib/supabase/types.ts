@@ -40,6 +40,11 @@ export type Article = {
   generation_cost_usd: number | null;
   // Phase 4 additions
   is_live: boolean;
+  // Phase 5 SEO metadata
+  focus_keyword: string | null;
+  long_tail_keywords: string[];
+  power_word: string | null;
+  faq: Array<{ q: string; a: string }> | null;
 };
 
 export type ArticleViews = {

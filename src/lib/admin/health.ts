@@ -404,6 +404,34 @@ export async function getHealthChecks(): Promise<Check[]> {
       level: "ok",
       detail: "/privacy and /terms are live",
     })),
+    runCheck(async () => {
+      if (!supabase)
+        return {
+          id: "seo-metadata",
+          group: "Database",
+          label: "SEO metadata columns (0005)",
+          level: "fail",
+          detail: "supabase client unavailable",
+        };
+      const { error } = await supabase
+        .from("articles")
+        .select("focus_keyword", { head: true, count: "exact" });
+      if (error)
+        return {
+          id: "seo-metadata",
+          group: "Database",
+          label: "SEO metadata columns (0005)",
+          level: "fail",
+          detail: `migration 0005 not applied? ${error.message}`,
+        };
+      return {
+        id: "seo-metadata",
+        group: "Database",
+        label: "SEO metadata columns (0005)",
+        level: "ok",
+        detail: "focus_keyword + long_tail_keywords + faq present",
+      };
+    }),
     runCheck(async () => ({
       id: "rate-limit",
       group: "Operations",

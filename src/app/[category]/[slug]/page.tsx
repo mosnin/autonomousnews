@@ -23,6 +23,8 @@ import SourcesBlock from "@/components/SourcesBlock";
 import StoryUpdatesTimeline from "@/components/StoryUpdatesTimeline";
 import LiveBadge from "@/components/LiveBadge";
 import NewsletterSignup from "@/components/NewsletterSignup";
+import TableOfContents from "@/components/TableOfContents";
+import ArticleFAQ from "@/components/ArticleFAQ";
 import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
 import { renderArticleBody, extractChapters } from "@/lib/articleBody";
@@ -65,10 +67,18 @@ export async function generateMetadata({
   if (!article) return {};
   const title = article.seo_title ?? article.title;
   const description = article.seo_description ?? article.dek ?? article.excerpt ?? "";
+  // Long-tail + focus keyword power the <meta keywords> tag. Most search
+  // engines downweight it, but Bing still reads it and AdSense uses it
+  // for category matching.
+  const keywords = [
+    ...(article.focus_keyword ? [article.focus_keyword] : []),
+    ...(article.long_tail_keywords ?? []),
+    ...(article.seo_keywords ?? []),
+  ];
   return {
     title,
     description,
-    keywords: article.seo_keywords,
+    keywords,
     alternates: { canonical: `/${article.category_slug}/${article.slug}` },
     openGraph: {
       title,
@@ -256,6 +266,10 @@ export default async function CategorySlugPage({
           initialUp={reactions.up}
           initialDown={reactions.down}
         />
+        <TableOfContents
+          chapters={chapters}
+          hasFAQ={!!article.faq && article.faq.length > 0}
+        />
       </div>
 
       <div className="max-w-prose mx-auto px-4 prose-article">
@@ -274,6 +288,7 @@ export default async function CategorySlugPage({
       </div>
 
       <div className="max-w-prose mx-auto px-4">
+        <ArticleFAQ items={article.faq ?? []} />
         <SourcesBlock urls={article.source_urls ?? []} />
         <TopicChips tags={article.tags ?? []} />
         <StoryUpdatesTimeline updates={updates} />

@@ -42,11 +42,22 @@ MODEL_PRICING_USD_PER_M = {
 DALLE_USD_PER_IMAGE = 0.040  # 1024x1024 standard quality
 
 
-def slugify(text: str, max_len: int = 80) -> str:
+def slugify(text: str, max_len: int = 60) -> str:
+    """Aggressively short, focus-keyword-friendly slugs.
+
+    Trims at the LAST word boundary inside max_len so we never produce a
+    `...-w` truncation. Falls back to 'story' if everything is filtered out.
+    """
     text = text.lower()
     text = re.sub(r"[^a-z0-9]+", "-", text)
     text = re.sub(r"^-+|-+$", "", text)
-    return text[:max_len] or "story"
+    if not text:
+        return "story"
+    if len(text) <= max_len:
+        return text
+    # Trim at the last hyphen that fits inside max_len.
+    cut = text[:max_len].rsplit("-", 1)[0]
+    return cut or text[:max_len]
 
 
 def topic_key(title: str, category_slug: str) -> str:
@@ -71,22 +82,61 @@ significance.
 You MUST respond as valid JSON matching the schema the user supplies.
 """
 
+POWER_WORDS = [
+    "Inside", "Why", "How", "Quietly", "Suddenly", "Just", "Now", "First",
+    "Last", "New", "Breaking", "Major", "Latest", "Rare", "Defining",
+    "Pivotal", "Critical", "Crucial", "Decisive", "Sweeping", "Stunning",
+    "Sharp", "Bold", "Hidden", "Unfolding", "Surprising", "Strategic",
+    "Urgent", "Quiet", "Final", "Renewed",
+]
+
+
 WRITER_SYSTEM = """You are {author_name}, {author_title} at Techno Times.
 
 Write neutral, informative news articles in the house style of a major
 international newspaper (think The New York Times). Always:
 
+EDITORIAL VOICE
 - Lead with the most important fact in the first paragraph.
 - Attribute every claim to a source. If a fact comes from a wire report, say so.
 - Avoid opinion. Avoid speculation. Avoid clickbait.
 - NEVER give medical, legal or financial advice. NEVER advocate for one
   political party over another. Cover policy substance, not partisan framing.
-- Target 1,000–1,500 words. Use short paragraphs. Use H2 subheadings sparingly
-  to organize long pieces. Format with '## ' for H2 subheadings on their own
-  line. Include ONE OR TWO pull quotes by prefixing a memorable, self-contained
-  sentence (12–25 words) from the article with '>> ' on its own line.
-- End with a short outlook paragraph that summarizes where the story may go
-  next.
+- Target 1,000–1,500 words. Use short paragraphs. End with a short outlook
+  paragraph that summarizes where the story may go next.
+
+FORMATTING
+- Format H2 subheadings with '## ' on their own line.
+- Include 1–2 pull quotes by prefixing a memorable, self-contained sentence
+  (12–25 words) with '>> ' on its own line.
+- Include 2–3 outbound links to credible sources written as inline markdown
+  links: [link text](https://full.url). The link text should be substantive
+  (the source publication name or a specific phrase), never 'click here'.
+
+SEO REQUIREMENTS — every article MUST satisfy ALL of these
+- focus_keyword: ONE high-intent search phrase, 2–5 words, that this article
+  is meant to rank for. Lowercase, no punctuation.
+- long_tail_keywords: 4–5 additional high-intent long-tail phrases (3–6
+  words each). These are search queries a real reader might type. Include
+  question forms when natural ('how does X affect Y', 'what is X').
+- power_word: pick EXACTLY ONE from this list and use it in the title:
+  {power_words}
+- title: < 100 chars, MUST contain BOTH the power_word AND the focus_keyword
+  verbatim (case-insensitive). Read as a newspaper headline, not a listicle.
+- slug: kebab-case of the focus_keyword ONLY, no extra words, max 60 chars.
+  Example: focus_keyword 'ai chip export rules' -> slug 'ai-chip-export-rules'.
+- seo_title: < 70 chars, MUST contain the focus_keyword. May add a
+  '— Techno Times'-style site suffix.
+- seo_description: < 160 chars, MUST contain the focus_keyword in the first
+  half, sells the click without being sensational.
+- Keyword density: across the entire body, mentions of focus_keyword +
+  long_tail_keywords (and their natural variants) should account for 2–3% of
+  total words. For a 1,200-word article that is ~24–36 mentions combined.
+  Distribute them naturally — never stuff.
+- Image alt text: cover_image_alt MUST contain the focus_keyword.
+- FAQ: produce 3–5 question/answer pairs. Questions are real queries readers
+  would type ('Is X legal?', 'When does X take effect?'). Answers are 2–4
+  factual sentences, no editorializing.
 
 You MUST respond as valid JSON matching the schema the user supplies.
 """
@@ -281,19 +331,28 @@ Category: {selection['category_slug']} / {selection['subcategory_slug'] or '(non
 
 Respond with JSON (same schema as a fresh article):
 {{
-  "title": "<headline, may be sharpened, < 100 chars>",
+  "focus_keyword": "<2-5 word phrase>",
+  "long_tail_keywords": ["<4-5 long-tail queries>"],
+  "power_word": "<one from the curated list>",
+  "title": "<< 100 chars, includes power_word + focus_keyword>",
+  "slug": "<kebab-case of focus_keyword, <= 60 chars>",
   "dek": "<one-sentence subheadline, < 200 chars>",
   "excerpt": "<3-sentence summary>",
   "body": "<the fully rewritten article incorporating the new information>",
-  "seo_title": "<< 70 chars>",
-  "seo_description": "<< 160 chars>",
+  "cover_image_alt": "<descriptive alt text containing focus_keyword>",
+  "seo_title": "<< 70 chars, must contain focus_keyword>",
+  "seo_description": "<< 160 chars, must contain focus_keyword in first half>",
   "seo_keywords": ["<5-10 keywords>"],
   "tags": ["<topical tags>"],
-  "read_minutes": <int>
+  "read_minutes": <int>,
+  "faq": [
+    {{ "q": "<question>", "a": "<2-4 sentence answer>" }}
+  ]
 }}
 """
         system_msg = WRITER_UPDATE_SYSTEM.format(
-            author_name=author.name, author_title=author.title
+            author_name=author.name, author_title=author.title,
+            power_words=", ".join(POWER_WORDS),
         )
     else:
         user_msg = f"""Write a 1,000–1,500 word news article.
@@ -307,19 +366,28 @@ Category: {selection['category_slug']} / {selection['subcategory_slug'] or '(non
 
 Respond with JSON:
 {{
-  "title": "<rewritten headline, < 100 chars>",
+  "focus_keyword": "<2-5 word phrase the article is meant to rank for>",
+  "long_tail_keywords": ["<4-5 long-tail queries>"],
+  "power_word": "<exactly one from the curated list>",
+  "title": "<< 100 chars, MUST contain power_word + focus_keyword>",
+  "slug": "<kebab-case of focus_keyword, <= 60 chars, no extra words>",
   "dek": "<one-sentence subheadline, < 200 chars>",
   "excerpt": "<3-sentence summary used for cards and SEO description>",
-  "body": "<the full article as plain paragraphs separated by blank lines. May include H2 lines starting with '## '.>",
-  "seo_title": "<title tuned for search, < 70 chars>",
-  "seo_description": "<meta description, < 160 chars>",
+  "body": "<the article as plain paragraphs separated by blank lines. H2 lines start with '## '. Include 1-2 '>> ' pull quotes. Include 2-3 inline markdown links to outbound credible sources. Focus + long-tail keywords mentioned naturally throughout for 2-3% density.>",
+  "cover_image_alt": "<descriptive alt text containing focus_keyword>",
+  "seo_title": "<title tuned for search, < 70 chars, contains focus_keyword>",
+  "seo_description": "<meta description, < 160 chars, focus_keyword in first half>",
   "seo_keywords": ["<5-10 keywords>"],
   "tags": ["<topical tags>"],
-  "read_minutes": <int estimate>
+  "read_minutes": <int estimate>,
+  "faq": [
+    {{ "q": "<question a real reader would search>", "a": "<2-4 sentence factual answer>" }}
+  ]
 }}
 """
         system_msg = WRITER_SYSTEM.format(
-            author_name=author.name, author_title=author.title
+            author_name=author.name, author_title=author.title,
+            power_words=", ".join(POWER_WORDS),
         )
 
     resp = await client.chat.completions.create(
@@ -346,7 +414,26 @@ Respond with JSON:
         await log.warn("writer skipped empty article", title=trend.title)
         return None, cost, pt, ct
 
-    slug = slugify(data["title"])
+    # Slug priority: writer's slug (built from focus_keyword) > slugified title.
+    focus_kw = (data.get("focus_keyword") or "").strip()
+    raw_slug = (data.get("slug") or "").strip().lower()
+    if raw_slug:
+        slug = slugify(raw_slug)
+    elif focus_kw:
+        slug = slugify(focus_kw)
+    else:
+        slug = slugify(data["title"])
+
+    # Alt text MUST contain the focus_keyword. Fall back to constructing one
+    # so we never ship empty alt.
+    alt_text = (data.get("cover_image_alt") or "").strip()
+    if focus_kw and focus_kw.lower() not in alt_text.lower():
+        alt_text = (
+            f"{focus_kw}: {alt_text}".strip(": ").strip()
+            if alt_text
+            else f"{focus_kw} — illustration for Techno Times"
+        )
+
     article = {
         "slug": slug,
         "title": data["title"],
@@ -368,7 +455,7 @@ Respond with JSON:
         "seo_keywords": data.get("seo_keywords", []),
         # source image (we hot-link with credit; agent does NOT re-host)
         "cover_image_url": trend.image_url,
-        "cover_image_alt": data.get("dek") or data["title"],
+        "cover_image_alt": alt_text,
         "image_credit": f"Photo: {trend.source}" if trend.image_url else None,
         "image_source_url": trend.url if trend.image_url else None,
         "image_is_ai_generated": False,
@@ -380,6 +467,11 @@ Respond with JSON:
         "completion_tokens": ct,
         "generation_cost_usd": round(cost, 4),
         "ai_disclosed": True,
+        # SEO metadata (phase 5)
+        "focus_keyword": focus_kw or None,
+        "long_tail_keywords": data.get("long_tail_keywords", []),
+        "power_word": data.get("power_word"),
+        "faq": data.get("faq") or None,
     }
     return article, cost, pt, ct
 
