@@ -2,15 +2,23 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CATEGORIES, findCategory } from "@/lib/taxonomy";
-import { getArticlesByCategory } from "@/lib/articles";
+import {
+  getArticlesByCategory,
+  getCategoryArticlesGrouped,
+} from "@/lib/articles";
 import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
 import SectionStyle from "@/components/SectionStyle";
+import PoliticsLanding from "@/components/landings/PoliticsLanding";
+import SportsLanding from "@/components/landings/SportsLanding";
+import OpinionLanding from "@/components/landings/OpinionLanding";
 import { SITE } from "@/lib/site";
 import { breadcrumbListLd } from "@/lib/jsonld";
 
 export const revalidate = 300;
+
+const CUSTOM_LANDINGS = new Set(["politics", "sports", "opinion"]);
 
 export function generateStaticParams() {
   return CATEGORIES.map((c) => ({ category: c.slug }));
@@ -53,21 +61,13 @@ export default async function CategoryPage({
   const category = findCategory(slug);
   if (!category) notFound();
 
-  let articles = await getArticlesByCategory(category.slug, 30);
-  if (articles.length === 0) {
-    articles = PLACEHOLDER_ARTICLES.filter((a) => a.category_slug === category.slug);
-  }
-
-  const lead = articles[0];
-  const rest = articles.slice(1);
-
   const breadcrumbs = breadcrumbListLd([
     { name: "Home", url: "/" },
     { name: category.name, url: `/${category.slug}` },
   ]);
 
-  return (
-    <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+  const header = (
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
@@ -89,7 +89,47 @@ export default async function CategoryPage({
           ))}
         </nav>
       </header>
+    </>
+  );
 
+  // Custom landings consume a pre-fetched groups map so they can light up
+  // multiple subcategory-specific blocks from a single query.
+  if (CUSTOM_LANDINGS.has(category.slug)) {
+    let groups = await getCategoryArticlesGrouped(category.slug, 80);
+    if (groups.size === 0) {
+      // Placeholder fallback: group placeholders by subcategory.
+      const ph = PLACEHOLDER_ARTICLES.filter((a) => a.category_slug === category.slug);
+      groups = new Map();
+      for (const a of ph) {
+        const key = a.subcategory_slug ?? "";
+        const arr = groups.get(key) ?? [];
+        arr.push(a);
+        groups.set(key, arr);
+      }
+    }
+
+    return (
+      <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+        {header}
+        {category.slug === "politics" ? <PoliticsLanding groups={groups} /> : null}
+        {category.slug === "sports"   ? <SportsLanding   groups={groups} /> : null}
+        {category.slug === "opinion"  ? <OpinionLanding  groups={groups} /> : null}
+      </SectionStyle>
+    );
+  }
+
+  // Generic landing
+  let articles = await getArticlesByCategory(category.slug, 30);
+  if (articles.length === 0) {
+    articles = PLACEHOLDER_ARTICLES.filter((a) => a.category_slug === category.slug);
+  }
+
+  const lead = articles[0];
+  const rest = articles.slice(1);
+
+  return (
+    <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+      {header}
       {lead ? (
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-14">
           <div className="lg:col-span-8">

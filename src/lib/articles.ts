@@ -120,6 +120,34 @@ export async function getArticlesByAuthor(
   return (data ?? []) as unknown as ArticleSummary[];
 }
 
+// Group all published articles in a category by subcategory_slug in one query.
+// Returns Map<subcategorySlug, ArticleSummary[]> sorted by published_at desc
+// within each bucket. 'null' subcategory ends up under the key '' (empty).
+export async function getCategoryArticlesGrouped(
+  categorySlug: string,
+  perCategoryLimit = 80
+): Promise<Map<string, ArticleSummary[]>> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return new Map();
+  const { data, error } = await supabase
+    .from("articles")
+    .select(SUMMARY_COLUMNS)
+    .eq("status", "published")
+    .eq("category_slug", categorySlug)
+    .order("published_at", { ascending: false })
+    .limit(perCategoryLimit);
+  if (error) return new Map();
+
+  const groups = new Map<string, ArticleSummary[]>();
+  for (const row of (data ?? []) as unknown as ArticleSummary[]) {
+    const key = row.subcategory_slug ?? "";
+    const arr = groups.get(key) ?? [];
+    arr.push(row);
+    groups.set(key, arr);
+  }
+  return groups;
+}
+
 export async function getMostReadArticles(limit = 5): Promise<ArticleSummary[]> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return [];
