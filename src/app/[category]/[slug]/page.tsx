@@ -17,6 +17,7 @@ import SectionStyle from "@/components/SectionStyle";
 import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
 import { renderArticleBody, extractChapters } from "@/lib/articleBody";
+import { breadcrumbListLd } from "@/lib/jsonld";
 
 export const revalidate = 300;
 
@@ -115,6 +116,18 @@ export default async function CategorySlugPage({
   const cat = findCategory(article.category_slug);
   const chapters = extractChapters(article.body);
 
+  const breadcrumbs = breadcrumbListLd([
+    { name: "Home", url: "/" },
+    ...(cat ? [{ name: cat.name, url: `/${cat.slug}` }] : []),
+    ...(article.subcategory_slug && cat
+      ? (() => {
+          const sub = cat.subcategories.find((s) => s.slug === article.subcategory_slug);
+          return sub ? [{ name: sub.name, url: `/${cat.slug}/${sub.slug}` }] : [];
+        })()
+      : []),
+    { name: article.title, url: `/${article.category_slug}/${article.slug}` },
+  ]);
+
   return (
     <SectionStyle as="article" slug={article.category_slug} className="pt-6 md:pt-10 pb-12">
       <ScrollProgressBar />
@@ -122,6 +135,10 @@ export default async function CategorySlugPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
       />
       <header className="max-w-prose mx-auto px-4 mb-8 md:mb-12 animate-fade-up">
         <div className="section-ribbon" />
@@ -266,8 +283,18 @@ function renderSubcategory(
   const lead = articles[0];
   const rest = articles.slice(1);
 
+  const subBreadcrumbs = breadcrumbListLd([
+    { name: "Home", url: "/" },
+    { name: category.name, url: `/${category.slug}` },
+    { name: subcategory.name, url: `/${category.slug}/${subcategory.slug}` },
+  ]);
+
   return (
     <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(subBreadcrumbs) }}
+      />
       <header className="rule-bottom pb-8 mb-10">
         <div className="section-ribbon" />
         <div className="kicker mb-2">

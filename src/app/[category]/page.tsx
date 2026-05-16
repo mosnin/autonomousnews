@@ -8,6 +8,7 @@ import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
 import SectionStyle from "@/components/SectionStyle";
 import { SITE } from "@/lib/site";
+import { breadcrumbListLd } from "@/lib/jsonld";
 
 export const revalidate = 300;
 
@@ -60,8 +61,17 @@ export default async function CategoryPage({
   const lead = articles[0];
   const rest = articles.slice(1);
 
+  const breadcrumbs = breadcrumbListLd([
+    { name: "Home", url: "/" },
+    { name: category.name, url: `/${category.slug}` },
+  ]);
+
   return (
     <SectionStyle slug={category.slug} className="max-w-content mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
       <header className="rule-bottom pb-10 mb-12">
         <div className="section-ribbon" />
         <div className="kicker mb-2">Section</div>

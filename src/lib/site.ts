@@ -9,6 +9,13 @@ export const SITE = {
     "Breaking technology news, in-depth reporting on AI, business, science and the policies shaping the modern world.",
   locale: "en_US",
   twitter: "@technotimes",
+  contactEmail:
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hello@technotimes.com",
+  // For Terms/Privacy. Fill these in before launch.
+  governingLawState:
+    process.env.NEXT_PUBLIC_GOVERNING_LAW_STATE ?? "[State of Residence]",
+  legalOperatorName:
+    process.env.NEXT_PUBLIC_LEGAL_OPERATOR_NAME ?? "Techno Times",
 };
 
 export const ADSENSE_CLIENT_ID =
