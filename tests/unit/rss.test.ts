@@ -76,6 +76,43 @@ describe("rss.renderRssFeed", () => {
     );
   });
 
+  it("emits <enclosure> + <media:content> when cover_image_url is set", async () => {
+    const { renderRssFeed } = await import("@/lib/rss");
+    const xml = renderRssFeed({
+      title: "Tt",
+      description: "d",
+      selfPath: "/feed.xml",
+      articles: [
+        fakeArticle({
+          cover_image_url: "https://cdn.example.com/cover.png",
+          cover_image_alt: "Hero shot",
+        }),
+      ],
+    });
+    expect(xml).toContain('xmlns:media="http://search.yahoo.com/mrss/"');
+    expect(xml).toContain(
+      '<enclosure url="https://cdn.example.com/cover.png" length="0" type="image/png" />'
+    );
+    expect(xml).toContain(
+      '<media:content url="https://cdn.example.com/cover.png" medium="image" type="image/png" />'
+    );
+    expect(xml).toContain(
+      '<media:description type="plain">Hero shot</media:description>'
+    );
+  });
+
+  it("omits enclosure when cover_image_url is null", async () => {
+    const { renderRssFeed } = await import("@/lib/rss");
+    const xml = renderRssFeed({
+      title: "Tt",
+      description: "d",
+      selfPath: "/feed.xml",
+      articles: [fakeArticle({ cover_image_url: null })],
+    });
+    expect(xml).not.toContain("<enclosure");
+    expect(xml).not.toContain("<media:content");
+  });
+
   it("emits an empty channel when no articles", async () => {
     const { renderRssFeed } = await import("@/lib/rss");
     const xml = renderRssFeed({

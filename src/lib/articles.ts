@@ -357,6 +357,60 @@ export async function getSubcategoryPillar(
   return (data ?? null) as import("./supabase/types").SubcategoryPillar | null;
 }
 
+// One-shot fetch of every `subcategory_pillars` row's update timestamp. The
+// sitemap merges these with the latest article published_at per subcategory
+// so subcategory `lastmod` reflects pillar refreshes too. Returns a Map
+// keyed by `${category_slug}/${subcategory_slug}`.
+export async function getSubcategoryPillarUpdatedAtMap(): Promise<
+  Map<string, string>
+> {
+  const supabase = await createSupabaseServerClient();
+  const out = new Map<string, string>();
+  if (!supabase) return out;
+  const { data, error } = await supabase
+    .from("subcategory_pillars")
+    .select("category_slug, subcategory_slug, updated_at");
+  if (error || !data) return out;
+  for (const row of data as Array<{
+    category_slug: string;
+    subcategory_slug: string;
+    updated_at: string;
+  }>) {
+    out.set(`${row.category_slug}/${row.subcategory_slug}`, row.updated_at);
+  }
+  return out;
+}
+
+// Latest `published_at` per `(category_slug, subcategory_slug)`. Reads only
+// the three columns it needs from the pre-sorted articles table so it stays
+// cheap on row scan, not on body bytes.
+export async function getSubcategoryLatestPublishedAtMap(): Promise<
+  Map<string, string>
+> {
+  const supabase = await createSupabaseServerClient();
+  const out = new Map<string, string>();
+  if (!supabase) return out;
+  const { data, error } = await supabase
+    .from("articles")
+    .select("category_slug, subcategory_slug, published_at")
+    .eq("status", "published")
+    .not("subcategory_slug", "is", null)
+    .order("published_at", { ascending: false })
+    .limit(2000);
+  if (error || !data) return out;
+  for (const row of data as Array<{
+    category_slug: string;
+    subcategory_slug: string | null;
+    published_at: string | null;
+  }>) {
+    if (!row.subcategory_slug || !row.published_at) continue;
+    const key = `${row.category_slug}/${row.subcategory_slug}`;
+    // Rows are already DESC by published_at — first hit per key wins.
+    if (!out.has(key)) out.set(key, row.published_at);
+  }
+  return out;
+}
+
 export async function getRecentArticlesForNewsSitemap(
   hours = 48
 ): Promise<Pick<Article, "slug" | "title" | "category_slug" | "published_at" | "seo_keywords">[]> {
