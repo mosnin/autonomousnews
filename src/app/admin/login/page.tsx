@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { ADMIN_COOKIE, getExpectedToken } from "@/lib/admin-auth";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -62,6 +63,12 @@ export default async function AdminLogin({
         >
           Sign in
         </button>
+        <Link
+          href="/"
+          className="text-xs text-muted hover:text-ink mt-6 block text-center"
+        >
+          ← Back to Techno Times
+        </Link>
       </form>
     </div>
   );

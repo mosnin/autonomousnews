@@ -310,7 +310,7 @@ function Stat({
     <div className="bg-paper border border-rule p-4">
       <div className="text-xs uppercase tracking-widest text-muted">{label}</div>
       <div
-        className={`mt-1 text-2xl font-bold ${
+        className={`mt-1 text-2xl font-bold tabular-nums ${
           accent === "bad" ? "text-red-600" : ""
         }`}
       >

@@ -4,7 +4,15 @@ import { isAdminAuthed } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { Article } from "@/lib/supabase/types";
 import StatusPill from "@/components/admin/StatusPill";
+import ConfirmingForm from "@/components/admin/ConfirmingForm";
 import { formatDateTime } from "@/lib/admin/format";
+
+const CONFIRM_MESSAGES: Record<string, string> = {
+  archive:
+    "Archive this article? It will be removed from the public site.",
+  unpublish:
+    "Move this article back to draft? It will be removed from the public site.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -158,20 +166,35 @@ function ArticleAction({
   disabled?: boolean;
   intent?: "danger";
 }) {
-  return (
-    <form action="/api/admin/article-action" method="post">
+  const buttonClass = `text-sm px-3 py-1.5 border ${
+    intent === "danger"
+      ? "border-red-300 text-red-700 hover:bg-red-50"
+      : "border-rule hover:bg-wash"
+  } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`;
+  const inner = (
+    <>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="action" value={action} />
-      <button
-        disabled={disabled}
-        className={`text-sm px-3 py-1.5 border ${
-          intent === "danger"
-            ? "border-red-300 text-red-700 hover:bg-red-50"
-            : "border-rule hover:bg-wash"
-        } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
-      >
+      <button disabled={disabled} className={buttonClass}>
         {label}
       </button>
+    </>
+  );
+  const confirmMessage = CONFIRM_MESSAGES[action];
+  if (confirmMessage) {
+    return (
+      <ConfirmingForm
+        action="/api/admin/article-action"
+        method="post"
+        confirmMessage={confirmMessage}
+      >
+        {inner}
+      </ConfirmingForm>
+    );
+  }
+  return (
+    <form action="/api/admin/article-action" method="post">
+      {inner}
     </form>
   );
 }
