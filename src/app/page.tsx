@@ -58,7 +58,7 @@ export default async function HomePage() {
 
         {next.length > 0 ? (
           <section className="rule-top rule-bottom py-8 md:py-10 mb-10 md:mb-16">
-            <div className="kicker text-muted mb-5">What&rsquo;s next</div>
+            <h2 className="kicker text-muted mb-5">What&rsquo;s next</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {next.map((a) => (
                 <ArticleCard key={a.id} article={a} variant="compact" showImage={false} />

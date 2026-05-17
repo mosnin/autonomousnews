@@ -47,7 +47,7 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="max-w-prose mx-auto px-4 pt-10 pb-16">
+    <div className="max-w-content mx-auto px-4 md:px-8 pt-10 pb-16">
       <header className="rule-bottom pb-6 mb-8">
         <div className="kicker text-muted mb-2">Reading list</div>
         <h1 className="headline text-4xl md:text-5xl mb-3">Saved stories</h1>

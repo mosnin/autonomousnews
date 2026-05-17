@@ -58,7 +58,7 @@ export default function SiteHeader() {
             type="search"
             name="q"
             placeholder="Search"
-            className="text-[12px] bg-transparent border-b border-rule focus:border-ink focus-visible:outline-none focus:bg-paper px-1 py-0.5 w-40 normal-case tracking-normal"
+            className="text-[12px] bg-transparent border-b border-rule focus:border-ink focus:bg-paper px-1 py-0.5 w-40 normal-case tracking-normal focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           />
         </form>
         <div className="text-center text-muted">{date}</div>

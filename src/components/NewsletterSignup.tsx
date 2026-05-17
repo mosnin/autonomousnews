@@ -58,7 +58,7 @@ export default function NewsletterSignup({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
           aria-label="Email address"
-          className="flex-1 border border-rule bg-paper px-3 py-2 text-sm"
+          className="flex-1 border border-rule bg-paper px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         />
         <button
           type="submit"
@@ -89,7 +89,7 @@ export default function NewsletterSignup({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
           aria-label="Email address"
-          className="flex-1 border border-rule bg-paper px-3 py-2.5 text-base"
+          className="flex-1 border border-rule bg-paper px-3 py-2.5 text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         />
         <button
           type="submit"

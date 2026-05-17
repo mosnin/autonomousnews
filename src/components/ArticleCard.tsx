@@ -89,7 +89,7 @@ export default function ArticleCard({
           </div>
         </div>
         {showImage && article.cover_image_url ? (
-          <div className="relative w-28 md:w-full aspect-square md:aspect-[4/3] overflow-hidden bg-wash">
+          <div className="relative w-28 md:w-full aspect-[16/9] overflow-hidden bg-wash">
             <Image
               src={article.cover_image_url}
               alt={coverImageAlt(article)}
@@ -173,7 +173,7 @@ export default function ArticleCard({
   return (
     <Link href={href} style={css} className="story-link block group">
       {showImage && article.cover_image_url ? (
-        <div className="relative aspect-[16/10] overflow-hidden bg-wash mb-3">
+        <div className="relative aspect-[16/9] overflow-hidden bg-wash mb-3">
           <Image
             src={article.cover_image_url}
             alt={coverImageAlt(article)}

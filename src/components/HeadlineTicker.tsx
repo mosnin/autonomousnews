@@ -25,7 +25,7 @@ export default function HeadlineTicker({ headlines }: Props) {
 
   return (
     <div
-      className="bg-red-700 text-white text-sm font-sans"
+      className="bg-[rgb(var(--breaking-bg))] text-[rgb(var(--breaking-fg))] text-sm font-sans"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-live="polite"
@@ -33,8 +33,8 @@ export default function HeadlineTicker({ headlines }: Props) {
       <div className="max-w-content mx-auto px-4 md:px-8 py-1.5 flex items-center gap-3">
         <span className="flex items-center gap-1.5 font-bold uppercase tracking-kicker text-[10px] shrink-0">
           <span className="relative inline-flex">
-            <span className="absolute inline-flex h-2 w-2 rounded-full bg-white opacity-75 animate-ping" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+            <span className="absolute inline-flex h-2 w-2 rounded-full bg-[rgb(var(--breaking-ping))] opacity-75 animate-ping" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(var(--breaking-ping))]" />
           </span>
           {isLive ? "Live" : "Breaking"}
         </span>
@@ -53,7 +53,7 @@ export default function HeadlineTicker({ headlines }: Props) {
                 key={n}
                 onClick={() => setI(n)}
                 aria-label={`Headline ${n + 1}`}
-                className={`h-1.5 w-1.5 rounded-full ${n === i ? "bg-white" : "bg-white/40"}`}
+                className={`h-1.5 w-1.5 rounded-full ${n === i ? "bg-[rgb(var(--breaking-ping))]" : "bg-[rgb(var(--breaking-ping))]/40"}`}
               />
             ))}
           </div>

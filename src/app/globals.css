@@ -11,6 +11,9 @@
   --wash:   247 247 245;
   --section: #0f5dd2;
   --section-text: #0f5dd2;
+  --breaking-bg:   185 28 28;    /* red-700 */
+  --breaking-fg:   255 255 255;
+  --breaking-ping: 255 255 255;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +26,9 @@
     --wash:   24 24 27;
     --section: #7eb8ff;
     --section-text: #7eb8ff;
+    --breaking-bg:   220 38 38;  /* red-600 — slightly brighter on dark paper */
+    --breaking-fg:   255 245 245;
+    --breaking-ping: 255 220 220;
   }
 }
 
@@ -66,6 +72,13 @@ body {
   font-family: var(--font-serif), Georgia, serif;
   color: rgb(var(--muted));
   line-height: 1.4;
+}
+.lead {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.125rem;        /* 18px */
+  line-height: 1.65;
+  color: rgb(var(--ink));     /* full ink, not muted — it's a lead paragraph */
+  font-weight: 400;
 }
 
 /* Reusable rule helpers */

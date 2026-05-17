@@ -25,7 +25,7 @@ export default async function SearchPage({
       : [[], []];
 
   return (
-    <div className="max-w-content mx-auto px-4 pt-10 pb-12">
+    <div className="max-w-content mx-auto px-4 md:px-8 pt-10 pb-12">
       <header className="mb-6">
         <div className="kicker text-muted mb-2">Search</div>
         <h1 className="headline text-3xl md:text-4xl">
@@ -39,7 +39,7 @@ export default async function SearchPage({
           name="q"
           defaultValue={query}
           placeholder="What are you looking for?"
-          className="flex-1 border border-rule px-3 py-2 text-base"
+          className="flex-1 border border-rule px-3 py-2 text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           aria-label="Search articles"
           minLength={2}
         />
