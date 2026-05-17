@@ -35,7 +35,7 @@ export default async function AdminAuthors() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {AUTHORS.map((a) => (
-          <div key={a.slug} className="bg-white border border-rule p-4 flex gap-4">
+          <div key={a.slug} className="bg-paper border border-rule p-4 flex gap-4">
             <div className="w-14 h-14 rounded-full bg-ink text-white flex items-center justify-center font-bold flex-shrink-0">
               {a.initials}
             </div>

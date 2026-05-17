@@ -6,14 +6,34 @@ import { getHealthChecks, summarize, type Check } from "@/lib/admin/health";
 export const dynamic = "force-dynamic";
 
 const LEVEL_BADGE: Record<Check["level"], string> = {
-  ok:   "bg-green-100 text-green-800 border-green-300",
-  warn: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  fail: "bg-red-100 text-red-800 border-red-300",
-  info: "bg-gray-100 text-gray-700 border-gray-300",
+  ok:   "bg-wash text-ink border border-rule",
+  warn: "bg-wash text-ink border border-rule",
+  fail: "bg-wash text-ink border border-rule",
+  info: "bg-wash text-ink border border-rule",
+};
+const LEVEL_DOT: Record<Check["level"], string | null> = {
+  ok:   "#15803d",
+  warn: "#b45309",
+  fail: "#b91c1c",
+  info: null,
 };
 const LEVEL_LABEL: Record<Check["level"], string> = {
   ok: "OK", warn: "Warn", fail: "Fail", info: "Info",
 };
+
+function StatusDot({ color }: { color: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 8 8"
+      width={8}
+      height={8}
+      className="inline-block"
+    >
+      <circle cx={4} cy={4} r={4} fill={color} />
+    </svg>
+  );
+}
 
 export default async function HealthPage() {
   if (!(await isAdminAuthed())) redirect("/admin/login");
@@ -65,15 +85,16 @@ export default async function HealthPage() {
       {[...groups.entries()].map(([groupName, items]) => (
         <section key={groupName}>
           <h2 className="text-lg font-bold mb-2">{groupName}</h2>
-          <div className="bg-white border border-rule">
+          <div className="bg-paper border border-rule">
             {items.map((c) => (
               <div
                 key={c.id}
                 className="border-b border-rule last:border-b-0 px-4 py-3 flex items-start gap-4"
               >
                 <span
-                  className={`shrink-0 text-[10px] uppercase tracking-widest px-2 py-1 border ${LEVEL_BADGE[c.level]}`}
+                  className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest px-2 py-1 ${LEVEL_BADGE[c.level]}`}
                 >
+                  {LEVEL_DOT[c.level] ? <StatusDot color={LEVEL_DOT[c.level]!} /> : null}
                   {LEVEL_LABEL[c.level]}
                 </span>
                 <div className="min-w-0 flex-1">

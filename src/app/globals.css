@@ -14,6 +14,8 @@
   --breaking-bg:   185 28 28;    /* red-700 */
   --breaking-fg:   255 255 255;
   --breaking-ping: 255 255 255;
+  --code-bg: 24 24 24;
+  --code-fg: 230 230 230;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +31,8 @@
     --breaking-bg:   220 38 38;  /* red-600 — slightly brighter on dark paper */
     --breaking-fg:   255 245 245;
     --breaking-ping: 255 220 220;
+    --code-bg: 8 8 12;
+    --code-fg: 220 220 230;
   }
 }
 

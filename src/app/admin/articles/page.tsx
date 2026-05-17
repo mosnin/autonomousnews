@@ -63,7 +63,7 @@ export default async function AdminArticles({
         </button>
       </form>
 
-      <div className="bg-white border border-rule overflow-x-auto">
+      <div className="bg-paper border border-rule overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-wash text-left">
             <tr>

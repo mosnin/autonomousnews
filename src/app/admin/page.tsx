@@ -100,7 +100,7 @@ export default async function AdminOverview() {
 
       <section>
         <h2 className="text-lg font-bold mb-3">Spend by agent (30d)</h2>
-        <div className="bg-white border border-rule p-4">
+        <div className="bg-paper border border-rule p-4">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left">
@@ -148,7 +148,7 @@ export default async function AdminOverview() {
 
       <section>
         <h2 className="text-lg font-bold mb-3">Tools</h2>
-        <div className="bg-white border border-rule p-4 text-sm">
+        <div className="bg-paper border border-rule p-4 text-sm">
           <Link href="/admin/links" className="text-accent underline">
             Internal-link quality dashboard
           </Link>
@@ -166,7 +166,7 @@ export default async function AdminOverview() {
             View all
           </Link>
         </div>
-        <div className="bg-white border border-rule overflow-x-auto">
+        <div className="bg-paper border border-rule overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-wash text-left">
               <tr>
@@ -201,7 +201,7 @@ export default async function AdminOverview() {
                     {r.duration_ms != null ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
                   </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {r.cost_usd != null ? `$${Number(r.cost_usd).toFixed(3)}` : "—"}
+                    {r.cost_usd != null ? `$${Number(r.cost_usd).toFixed(2)}` : "—"}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <Link
@@ -225,7 +225,7 @@ export default async function AdminOverview() {
             View all
           </Link>
         </div>
-        <div className="bg-white border border-rule overflow-x-auto">
+        <div className="bg-paper border border-rule overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-wash text-left">
               <tr>
@@ -307,7 +307,7 @@ function Stat({
   accent?: "bad";
 }) {
   return (
-    <div className="bg-white border border-rule p-4">
+    <div className="bg-paper border border-rule p-4">
       <div className="text-xs uppercase tracking-widest text-muted">{label}</div>
       <div
         className={`mt-1 text-2xl font-bold ${

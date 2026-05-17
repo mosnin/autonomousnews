@@ -42,7 +42,7 @@ export default async function AdminArticleDetail({
         {article.dek ? <p className="text-muted">{article.dek}</p> : null}
       </header>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-rule p-4 text-sm">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-paper border border-rule p-4 text-sm">
         <Field label="Slug" value={article.slug} mono />
         <Field
           label="Path"
@@ -110,7 +110,7 @@ export default async function AdminArticleDetail({
 
       <section>
         <h2 className="text-lg font-bold mb-3">Body</h2>
-        <div className="bg-white border border-rule p-4 prose-article max-w-none">
+        <div className="bg-paper border border-rule p-4 prose-article max-w-none">
           {article.body.split("\n\n").map((p, i) => (
             <p key={i}>{p}</p>
           ))}

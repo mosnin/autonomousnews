@@ -35,7 +35,7 @@ export default async function AdminLogin({
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <form
         action={authenticate}
-        className="w-full max-w-sm bg-white border border-rule p-6 font-sans"
+        className="w-full max-w-sm bg-paper border border-rule p-6 font-sans"
       >
         <h1 className="text-xl font-bold mb-4">Admin sign in</h1>
         {error === "invalid" ? (

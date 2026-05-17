@@ -14,10 +14,10 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 const LEVEL_COLOR: Record<string, string> = {
-  debug: "text-gray-500",
-  info: "text-gray-800",
-  warn: "text-yellow-700",
-  error: "text-red-700",
+  debug: "text-muted",
+  info: "text-[rgb(var(--code-fg))]",
+  warn: "text-yellow-300",
+  error: "text-red-400",
 };
 
 export default async function RunDetail({
@@ -62,7 +62,7 @@ export default async function RunDetail({
         </h1>
       </div>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-rule p-4 text-sm">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-paper border border-rule p-4 text-sm">
         <Field label="Agent" value={run.agent} mono />
         <Field label="Trigger" value={run.trigger} />
         <Field label="Status" value={<StatusPill status={run.status} />} />
@@ -75,7 +75,7 @@ export default async function RunDetail({
         />
         <Field
           label="Cost"
-          value={run.cost_usd != null ? `$${Number(run.cost_usd).toFixed(3)}` : "—"}
+          value={run.cost_usd != null ? `$${Number(run.cost_usd).toFixed(2)}` : "—"}
         />
         <Field label="Topics" value={run.topics_considered} />
         <Field label="Articles" value={run.articles_created} />
@@ -91,7 +91,7 @@ export default async function RunDetail({
       {articles.length > 0 ? (
         <section>
           <h2 className="text-lg font-bold mb-3">Articles produced</h2>
-          <ul className="bg-white border border-rule divide-y divide-rule">
+          <ul className="bg-paper border border-rule divide-y divide-rule">
             {articles.map((a) => (
               <li key={a.id} className="p-3 flex items-center justify-between gap-4">
                 <div>
@@ -112,13 +112,13 @@ export default async function RunDetail({
 
       <section>
         <h2 className="text-lg font-bold mb-3">Logs</h2>
-        <div className="bg-black text-gray-100 font-mono text-xs p-4 max-h-[60vh] overflow-auto">
+        <div className="bg-[rgb(var(--code-bg))] text-[rgb(var(--code-fg))] font-mono text-xs p-4 max-h-[60vh] overflow-auto">
           {logs.length === 0 ? (
-            <div className="text-gray-400">No log entries.</div>
+            <div className="text-muted">No log entries.</div>
           ) : null}
           {logs.map((l) => (
             <div key={l.id} className="whitespace-pre-wrap leading-relaxed">
-              <span className="text-gray-500">
+              <span className="text-muted">
                 {new Date(l.created_at).toISOString().split("T")[1].replace("Z", "")}
               </span>{" "}
               <span className={`uppercase ${LEVEL_COLOR[l.level] ?? ""}`}>
@@ -126,7 +126,7 @@ export default async function RunDetail({
               </span>{" "}
               {l.message}
               {Object.keys(l.metadata ?? {}).length > 0 ? (
-                <span className="text-gray-400"> {JSON.stringify(l.metadata)}</span>
+                <span className="text-muted"> {JSON.stringify(l.metadata)}</span>
               ) : null}
             </div>
           ))}
@@ -136,7 +136,7 @@ export default async function RunDetail({
       {Object.keys(run.metadata ?? {}).length > 0 ? (
         <section>
           <h2 className="text-lg font-bold mb-3">Metadata</h2>
-          <pre className="bg-white border border-rule p-3 text-xs overflow-auto">
+          <pre className="bg-paper border border-rule p-3 text-xs overflow-auto">
             {JSON.stringify(run.metadata, null, 2)}
           </pre>
         </section>

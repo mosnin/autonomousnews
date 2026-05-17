@@ -14,7 +14,7 @@ export default async function AdminRuns() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Agent runs</h1>
-      <div className="bg-white border border-rule overflow-x-auto">
+      <div className="bg-paper border border-rule overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-wash text-left">
             <tr>
@@ -52,7 +52,7 @@ export default async function AdminRuns() {
                   {r.duration_ms != null ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
                 </td>
                 <td className="px-3 py-2 tabular-nums">
-                  {r.cost_usd != null ? `$${Number(r.cost_usd).toFixed(3)}` : "—"}
+                  {r.cost_usd != null ? `$${Number(r.cost_usd).toFixed(2)}` : "—"}
                 </td>
                 <td className="px-3 py-2 text-xs font-mono">{r.model ?? "—"}</td>
                 <td className="px-3 py-2 text-right">

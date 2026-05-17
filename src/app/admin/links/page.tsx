@@ -77,7 +77,7 @@ function Section({
         <h2 className="text-lg font-bold">{title}</h2>
         <p className="text-sm text-muted">{description}</p>
       </div>
-      <div className="bg-white border border-rule overflow-x-auto">
+      <div className="bg-paper border border-rule overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-wash text-left">
             <tr>
@@ -151,7 +151,7 @@ function Stat({
   accent?: "bad";
 }) {
   return (
-    <div className="bg-white border border-rule p-4">
+    <div className="bg-paper border border-rule p-4">
       <div className="text-xs uppercase tracking-widest text-muted">{label}</div>
       <div
         className={`mt-1 text-2xl font-bold tabular-nums ${
