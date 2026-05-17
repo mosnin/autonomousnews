@@ -5,6 +5,7 @@ import {
   getAdminStats,
   getRecentRuns,
   getAdminArticles,
+  getSpendByAgent,
 } from "@/lib/admin/queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import StatusPill from "@/components/admin/StatusPill";
@@ -18,10 +19,11 @@ export default async function AdminOverview() {
 
   const supabaseConfigured = !!getSupabaseAdmin();
 
-  const [stats, runs, recentArticles] = await Promise.all([
+  const [stats, runs, recentArticles, spendByAgent] = await Promise.all([
     getAdminStats(),
     getRecentRuns(8),
     getAdminArticles({ limit: 8 }),
+    getSpendByAgent(30),
   ]);
 
   return (
@@ -94,6 +96,54 @@ export default async function AdminOverview() {
           label="Images today"
           value={`$${stats.todaysImageUsd.toFixed(2)}`}
         />
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold mb-3">Spend by agent (30d)</h2>
+        <div className="bg-white border border-rule p-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left">
+                <tr className="text-xs uppercase tracking-widest text-muted">
+                  <th className="py-2 pr-3 font-normal">Agent</th>
+                  <th className="py-2 px-3 font-normal text-right">Runs</th>
+                  <th className="py-2 px-3 font-normal text-right">Articles</th>
+                  <th className="py-2 px-3 font-normal text-right">Cost</th>
+                  <th className="py-2 pl-3 font-normal text-right">Last run</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spendByAgent.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted">
+                      No completed runs in the last 30 days.
+                    </td>
+                  </tr>
+                ) : null}
+                {spendByAgent.map((row) => (
+                  <tr key={row.agent} className="border-t border-rule">
+                    <td className="py-2 pr-3">{agentLabel(row.agent)}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">
+                      {row.runs}
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums">
+                      {row.articles}
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums">
+                      ${row.cost_usd.toFixed(2)}
+                    </td>
+                    <td className="py-2 pl-3 text-right whitespace-nowrap">
+                      {row.last_run_at ? formatDistanceToNow(row.last_run_at) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted">
+            Includes succeeded + failed runs. In-flight runs excluded.
+          </p>
+        </div>
       </section>
 
       <section>
@@ -236,6 +286,15 @@ export default async function AdminOverview() {
       </section>
     </div>
   );
+}
+
+const AGENT_LABELS: Record<string, string> = {
+  "news-scout": "News scout",
+  "pillar-refresh": "Pillar refresh",
+};
+
+function agentLabel(slug: string): string {
+  return AGENT_LABELS[slug] ?? slug;
 }
 
 function Stat({

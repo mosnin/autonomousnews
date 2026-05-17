@@ -156,6 +156,56 @@ export async function getTodaysCost(): Promise<{
   };
 }
 
+export type AgentSpendRow = {
+  agent: string;
+  runs: number;
+  cost_usd: number;
+  articles: number;
+  last_run_at: string | null;
+};
+
+// TODO: if agent_runs grows large, add index on (status, started_at) and
+// consider a SQL view / RPC for this aggregation.
+export async function getSpendByAgent(days = 30): Promise<AgentSpendRow[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  const since = new Date(Date.now() - days * 24 * 3600_000).toISOString();
+  const { data } = await supabase
+    .from("agent_runs")
+    .select("agent, cost_usd, articles_created, started_at, status")
+    .in("status", ["succeeded", "failed"])
+    .gte("started_at", since);
+
+  const rows = (data ?? []) as Array<{
+    agent: string | null;
+    cost_usd: number | string | null;
+    articles_created: number | null;
+    started_at: string;
+    status: string;
+  }>;
+
+  const acc = new Map<string, AgentSpendRow>();
+  for (const r of rows) {
+    const key = r.agent ?? "(unknown)";
+    const existing = acc.get(key) ?? {
+      agent: key,
+      runs: 0,
+      cost_usd: 0,
+      articles: 0,
+      last_run_at: null,
+    };
+    existing.runs += 1;
+    existing.cost_usd += Number(r.cost_usd ?? 0);
+    existing.articles += Number(r.articles_created ?? 0);
+    if (!existing.last_run_at || r.started_at > existing.last_run_at) {
+      existing.last_run_at = r.started_at;
+    }
+    acc.set(key, existing);
+  }
+
+  return Array.from(acc.values()).sort((a, b) => b.cost_usd - a.cost_usd);
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
   const supabase = getSupabaseAdmin();
   const empty: AdminStats = {
