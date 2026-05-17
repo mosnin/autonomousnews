@@ -76,17 +76,6 @@ export async function getRunLogs(runId: string, limit = 500): Promise<AgentLog[]
   return (data ?? []) as unknown as AgentLog[];
 }
 
-export async function getRecentLogs(limit = 200): Promise<AgentLog[]> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("agent_logs")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as unknown as AgentLog[];
-}
-
 export async function getRunArticleIds(runId: string): Promise<string[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
@@ -153,6 +142,54 @@ export async function getTodaysCost(): Promise<{
     total: Number(row?.total_cost_usd ?? 0),
     openai: Number(row?.openai_cost_usd ?? 0),
     image: Number(row?.image_cost_usd ?? 0),
+  };
+}
+
+export type SpendSummary = {
+  today: number;
+  last7d: number;
+  last30d: number;
+};
+
+export async function getSpendSummary(): Promise<SpendSummary> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { today: 0, last7d: 0, last30d: 0 };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const day = (offset: number) =>
+    new Date(Date.now() - offset * 24 * 3600_000).toISOString().slice(0, 10);
+  const since7d = day(6); // inclusive of today => 7 days total
+  const since30d = day(29);
+
+  const [todayRes, last7Res, last30Res] = await Promise.all([
+    supabase
+      .from("cost_ledger")
+      .select("total_cost_usd")
+      .eq("day", today)
+      .maybeSingle(),
+    supabase
+      .from("cost_ledger")
+      .select("total_cost_usd")
+      .gte("day", since7d),
+    supabase
+      .from("cost_ledger")
+      .select("total_cost_usd")
+      .gte("day", since30d),
+  ]);
+
+  const sum = (data: unknown): number => {
+    const rows = (data ?? []) as Array<{ total_cost_usd: number | string | null }>;
+    return rows.reduce((acc, r) => acc + Number(r.total_cost_usd ?? 0), 0);
+  };
+
+  const todayRow = (todayRes.data ?? null) as
+    | { total_cost_usd: number | string | null }
+    | null;
+
+  return {
+    today: Number(todayRow?.total_cost_usd ?? 0),
+    last7d: sum(last7Res.data),
+    last30d: sum(last30Res.data),
   };
 }
 

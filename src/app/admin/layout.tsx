@@ -21,10 +21,9 @@ export default function AdminLayout({
             </Link>
             <nav className="hidden md:flex gap-5 text-sm">
               <Link href="/admin" className="hover:underline">Overview</Link>
-              <Link href="/admin/runs" className="hover:underline">Agent Runs</Link>
-              <Link href="/admin/logs" className="hover:underline">Logs</Link>
               <Link href="/admin/articles" className="hover:underline">Articles</Link>
               <Link href="/admin/authors" className="hover:underline">Authors</Link>
+              <Link href="/admin/runs" className="hover:underline">Runs</Link>
               <Link href="/admin/links" className="hover:underline">Links</Link>
               <Link href="/admin/health" className="hover:underline">Health</Link>
             </nav>

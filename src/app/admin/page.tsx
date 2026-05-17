@@ -6,6 +6,7 @@ import {
   getRecentRuns,
   getAdminArticles,
   getSpendByAgent,
+  getSpendSummary,
 } from "@/lib/admin/queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import StatusPill from "@/components/admin/StatusPill";
@@ -19,12 +20,14 @@ export default async function AdminOverview() {
 
   const supabaseConfigured = !!getSupabaseAdmin();
 
-  const [stats, runs, recentArticles, spendByAgent] = await Promise.all([
-    getAdminStats(),
-    getRecentRuns(8),
-    getAdminArticles({ limit: 8 }),
-    getSpendByAgent(30),
-  ]);
+  const [stats, runs, recentArticles, spendByAgent, spendSummary] =
+    await Promise.all([
+      getAdminStats(),
+      getRecentRuns(8),
+      getAdminArticles({ limit: 8 }),
+      getSpendByAgent(30),
+      getSpendSummary(),
+    ]);
 
   return (
     <div className="space-y-8">
@@ -67,6 +70,74 @@ export default async function AdminOverview() {
         );
       })()}
 
+      <section>
+        <h2 className="text-lg font-bold mb-3">Spend</h2>
+        <div className="bg-paper border border-rule p-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <SpendRow
+              label="Today"
+              value={`$${spendSummary.today.toFixed(2)} / $${DAILY_BUDGET_USD.toFixed(2)}`}
+              accent={spendSummary.today >= DAILY_BUDGET_USD ? "bad" : undefined}
+            />
+            <SpendRow
+              label="This week"
+              value={`$${spendSummary.last7d.toFixed(2)}`}
+            />
+            <SpendRow
+              label="Last 30 days"
+              value={`$${spendSummary.last30d.toFixed(2)}`}
+            />
+          </div>
+          <div className="border-t border-rule pt-3">
+            <div className="text-xs uppercase tracking-widest text-muted mb-2">
+              By agent (30d)
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left">
+                  <tr className="text-xs uppercase tracking-widest text-muted">
+                    <th className="py-2 pr-3 font-normal">Agent</th>
+                    <th className="py-2 px-3 font-normal text-right">Cost</th>
+                    <th className="py-2 px-3 font-normal text-right">Runs</th>
+                    <th className="py-2 px-3 font-normal text-right">Articles</th>
+                    <th className="py-2 pl-3 font-normal text-right">Last run</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spendByAgent.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-muted">
+                        No completed runs in the last 30 days.
+                      </td>
+                    </tr>
+                  ) : null}
+                  {spendByAgent.map((row) => (
+                    <tr key={row.agent} className="border-t border-rule">
+                      <td className="py-2 pr-3">{agentLabel(row.agent)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">
+                        ${row.cost_usd.toFixed(2)}
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums">
+                        {row.runs}
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums">
+                        {row.articles}
+                      </td>
+                      <td className="py-2 pl-3 text-right whitespace-nowrap">
+                        {row.last_run_at ? formatDistanceToNow(row.last_run_at) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs text-muted">
+              Includes succeeded + failed runs. In-flight runs excluded.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Articles" value={stats.totalArticles} />
         <Stat label="Published" value={stats.publishedArticles} />
@@ -83,67 +154,6 @@ export default async function AdminOverview() {
           value={stats.lastRunStatus ?? "—"}
           accent={stats.lastRunStatus === "failed" ? "bad" : undefined}
         />
-        <Stat
-          label="Spend today"
-          value={`$${stats.todaysCostUsd.toFixed(2)} / $${DAILY_BUDGET_USD.toFixed(2)}`}
-          accent={stats.todaysCostUsd >= DAILY_BUDGET_USD ? "bad" : undefined}
-        />
-        <Stat
-          label="OpenAI today"
-          value={`$${stats.todaysOpenAiUsd.toFixed(2)}`}
-        />
-        <Stat
-          label="Images today"
-          value={`$${stats.todaysImageUsd.toFixed(2)}`}
-        />
-      </section>
-
-      <section>
-        <h2 className="text-lg font-bold mb-3">Spend by agent (30d)</h2>
-        <div className="bg-paper border border-rule p-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left">
-                <tr className="text-xs uppercase tracking-widest text-muted">
-                  <th className="py-2 pr-3 font-normal">Agent</th>
-                  <th className="py-2 px-3 font-normal text-right">Runs</th>
-                  <th className="py-2 px-3 font-normal text-right">Articles</th>
-                  <th className="py-2 px-3 font-normal text-right">Cost</th>
-                  <th className="py-2 pl-3 font-normal text-right">Last run</th>
-                </tr>
-              </thead>
-              <tbody>
-                {spendByAgent.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-muted">
-                      No completed runs in the last 30 days.
-                    </td>
-                  </tr>
-                ) : null}
-                {spendByAgent.map((row) => (
-                  <tr key={row.agent} className="border-t border-rule">
-                    <td className="py-2 pr-3">{agentLabel(row.agent)}</td>
-                    <td className="py-2 px-3 text-right tabular-nums">
-                      {row.runs}
-                    </td>
-                    <td className="py-2 px-3 text-right tabular-nums">
-                      {row.articles}
-                    </td>
-                    <td className="py-2 px-3 text-right tabular-nums">
-                      ${row.cost_usd.toFixed(2)}
-                    </td>
-                    <td className="py-2 pl-3 text-right whitespace-nowrap">
-                      {row.last_run_at ? formatDistanceToNow(row.last_run_at) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-xs text-muted">
-            Includes succeeded + failed runs. In-flight runs excluded.
-          </p>
-        </div>
       </section>
 
       <section>
@@ -308,6 +318,29 @@ function Stat({
 }) {
   return (
     <div className="bg-paper border border-rule p-4">
+      <div className="text-xs uppercase tracking-widest text-muted">{label}</div>
+      <div
+        className={`mt-1 text-2xl font-bold tabular-nums ${
+          accent === "bad" ? "text-red-600" : ""
+        }`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SpendRow({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: "bad";
+}) {
+  return (
+    <div>
       <div className="text-xs uppercase tracking-widest text-muted">{label}</div>
       <div
         className={`mt-1 text-2xl font-bold tabular-nums ${
