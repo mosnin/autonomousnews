@@ -10,6 +10,14 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["@supabase/supabase-js", "@upstash/redis"],
   },
+  async rewrites() {
+    return [
+      // IndexNow key verification: the spec wants the key file at /<key>.txt,
+      // but our route handler lives at /api/indexnow/<key>. Rewrite any
+      // /<something>.txt request to that handler; the handler 404s on mismatch.
+      { source: "/:key(.+)\\.txt", destination: "/api/indexnow/:key" },
+    ];
+  },
 };
 
 export default nextConfig;

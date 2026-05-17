@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { indexNowKey } from "@/lib/indexnow";
 
-// IndexNow verification endpoint. Set `INDEXNOW_KEY` and point
-// `keyLocation` at /api/indexnow/<key> in the IndexNow payload.
-//
-// (IndexNow's spec wants the key file at /<key>.txt; if you need that exact
-// path, either drop a static file in `public/<key>.txt` or add a Vercel
-// rewrite from /<key>.txt -> /api/indexnow/<key>.)
+// IndexNow verification endpoint. Set `INDEXNOW_KEY`; the client points
+// `keyLocation` at /<key>.txt per the IndexNow spec, and a Next.js rewrite
+// in next.config.mjs maps /<key>.txt -> /api/indexnow/<key> so this handler
+// serves the verification body.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ key: string }> }

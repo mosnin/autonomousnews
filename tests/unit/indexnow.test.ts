@@ -42,6 +42,24 @@ describe("indexnow.pingIndexNow", () => {
     });
   });
 
+  it("uses the bare /<key>.txt form for keyLocation (not /api/indexnow/<key>)", async () => {
+    vi.stubEnv("INDEXNOW_KEY", "deadbeef");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.com");
+    const fetchSpy = vi.fn(async () => new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const { pingIndexNow } = await import("@/lib/indexnow");
+    await pingIndexNow(["https://example.com/a"]);
+
+    const call = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(String(call[1].body));
+    // IndexNow verifies by GET-ing keyLocation. It must be the spec-mandated
+    // /<key>.txt form on the publisher's host, not the internal API route.
+    expect(body.keyLocation).toBe("https://example.com/deadbeef.txt");
+    expect(body.keyLocation).not.toContain("/api/");
+    expect(body.keyLocation).toMatch(/\/deadbeef\.txt$/);
+  });
+
   it("returns skipped when urls list is empty", async () => {
     vi.stubEnv("INDEXNOW_KEY", "abc123");
     const { pingIndexNow } = await import("@/lib/indexnow");
