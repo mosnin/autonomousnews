@@ -1,10 +1,7 @@
 import { ImageResponse } from "next/og";
 import { SITE } from "@/lib/site";
+import { loadPlayfairDisplay } from "@/lib/ogFont";
 
-// NOTE: For v1 we use the system serif (Georgia) instead of fetching a
-// webfont per render — the hosted Playfair woff is ~200KB and would be
-// pulled on every OG generation. Swap to a real serif font fetch when
-// the site has a webfont CDN.
 export const runtime = "nodejs";
 export const alt = `${SITE.name} — Autonomous Newsroom`;
 export const size = { width: 1200, height: 630 };
@@ -17,6 +14,7 @@ const ACCENT = "#0f5dd2"; // technology blue, used as the default brand accent
 const MUTED = "#5a5a5a";
 
 export default async function HomeOg() {
+  const playfair = await loadPlayfairDisplay();
   return new ImageResponse(
     (
       <div
@@ -27,7 +25,7 @@ export default async function HomeOg() {
           color: INK,
           display: "flex",
           flexDirection: "column",
-          fontFamily: "Georgia, serif",
+          fontFamily: "Playfair Display",
         }}
       >
         {/* Top section-accent rule */}
@@ -114,6 +112,16 @@ export default async function HomeOg() {
         </div>
       </div>
     ),
-    { ...size }
+    {
+      ...size,
+      fonts: [
+        {
+          name: "Playfair Display",
+          data: playfair,
+          style: "normal",
+          weight: 700,
+        },
+      ],
+    }
   );
 }

@@ -3,11 +3,8 @@ import { getArticleBySlug } from "@/lib/articles";
 import { findCategory, findSubcategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
 import { SITE } from "@/lib/site";
+import { loadPlayfairDisplay } from "@/lib/ogFont";
 
-// NOTE: For v1 we use the system serif (Georgia) instead of fetching a
-// webfont per render — the hosted Playfair woff is ~200KB and would be
-// pulled on every OG generation. Swap to a real serif font fetch when
-// the site has a webfont CDN.
 export const runtime = "nodejs";
 export const alt = "Article preview";
 export const size = { width: 1200, height: 630 };
@@ -31,6 +28,15 @@ export default async function ArticleOg({
   params: { category: string; slug: string };
 }) {
   const article = await getArticleBySlug(params.slug).catch(() => null);
+  const playfair = await loadPlayfairDisplay();
+  const fonts = [
+    {
+      name: "Playfair Display",
+      data: playfair,
+      style: "normal" as const,
+      weight: 700 as const,
+    },
+  ];
 
   // Fallback layout if Supabase isn't configured or the slug is unknown — we
   // never want the OG route to 500, since social platforms cache failures.
@@ -45,7 +51,7 @@ export default async function ArticleOg({
             color: INK,
             display: "flex",
             flexDirection: "column",
-            fontFamily: "Georgia, serif",
+            fontFamily: "Playfair Display",
           }}
         >
           <div
@@ -106,7 +112,7 @@ export default async function ArticleOg({
           </div>
         </div>
       ),
-      { ...size }
+      { ...size, fonts }
     );
   }
 
@@ -148,7 +154,7 @@ export default async function ArticleOg({
           color: INK,
           display: "flex",
           flexDirection: "column",
-          fontFamily: "Georgia, serif",
+          fontFamily: "Playfair Display",
         }}
       >
         {/* Section accent rule — full width, 8px tall, near the top. */}
@@ -258,6 +264,6 @@ export default async function ArticleOg({
         </div>
       </div>
     ),
-    { ...size }
+    { ...size, fonts }
   );
 }
