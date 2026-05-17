@@ -3,7 +3,7 @@ import { getArticleBySlug } from "@/lib/articles";
 import { findCategory, findSubcategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
 import { SITE } from "@/lib/site";
-import { loadPlayfairDisplay } from "@/lib/ogFont";
+import { loadPlayfairFonts } from "@/lib/ogFont";
 
 export const runtime = "nodejs";
 export const alt = "Article preview";
@@ -28,15 +28,7 @@ export default async function ArticleOg({
   params: { category: string; slug: string };
 }) {
   const article = await getArticleBySlug(params.slug).catch(() => null);
-  const playfair = await loadPlayfairDisplay();
-  const fonts = [
-    {
-      name: "Playfair Display",
-      data: playfair,
-      style: "normal" as const,
-      weight: 700 as const,
-    },
-  ];
+  const fonts = await loadPlayfairFonts();
 
   // Fallback layout if Supabase isn't configured or the slug is unknown — we
   // never want the OG route to 500, since social platforms cache failures.
@@ -213,7 +205,6 @@ export default async function ArticleOg({
               alignItems: "flex-end",
               borderTop: `2px solid ${RULE}`,
               paddingTop: 18,
-              fontFamily: "Helvetica, Arial, sans-serif",
             }}
           >
             <div
@@ -221,16 +212,18 @@ export default async function ArticleOg({
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,
+                // Byline sits in Playfair Regular to harmonise with the
+                // serif headline above it — Helvetica looked detached.
+                fontFamily: "Playfair Display",
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  fontSize: 22,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.18em",
+                  fontSize: 26,
                   color: INK,
-                  fontWeight: 700,
+                  fontWeight: 400,
+                  letterSpacing: "0.01em",
                 }}
               >
                 {`By ${author}`}
@@ -239,9 +232,10 @@ export default async function ArticleOg({
                 <div
                   style={{
                     display: "flex",
-                    fontSize: 20,
+                    fontSize: 22,
                     color: MUTED,
-                    letterSpacing: "0.04em",
+                    fontWeight: 400,
+                    letterSpacing: "0.02em",
                   }}
                 >
                   {readMinutes}

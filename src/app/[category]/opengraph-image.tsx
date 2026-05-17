@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { findCategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
 import { SITE } from "@/lib/site";
-import { loadPlayfairDisplay } from "@/lib/ogFont";
+import { loadPlayfairFonts } from "@/lib/ogFont";
 
 export const runtime = "nodejs";
 export const alt = "Section preview";
@@ -21,7 +21,7 @@ export default async function CategoryOg({
 }) {
   const category = findCategory(params.category);
   const accent = sectionColor(params.category).fg;
-  const playfair = await loadPlayfairDisplay();
+  const playfairFonts = await loadPlayfairFonts();
 
   const name = category?.name ?? "News";
   const description = category?.description ?? SITE.tagline;
@@ -101,7 +101,7 @@ export default async function CategoryOg({
                 display: "flex",
                 fontSize: 30,
                 color: MUTED,
-                fontStyle: "italic",
+                fontWeight: 400,
                 lineHeight: 1.25,
                 maxWidth: 980,
               }}
@@ -140,14 +140,7 @@ export default async function CategoryOg({
     ),
     {
       ...size,
-      fonts: [
-        {
-          name: "Playfair Display",
-          data: playfair,
-          style: "normal",
-          weight: 700,
-        },
-      ],
+      fonts: playfairFonts,
     }
   );
 }

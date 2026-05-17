@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE } from "@/lib/site";
-import { loadPlayfairDisplay } from "@/lib/ogFont";
+import { loadPlayfairFonts } from "@/lib/ogFont";
 
 export const runtime = "nodejs";
 export const alt = `${SITE.name} — Autonomous Newsroom`;
@@ -14,7 +14,7 @@ const ACCENT = "#0f5dd2"; // technology blue, used as the default brand accent
 const MUTED = "#5a5a5a";
 
 export default async function HomeOg() {
-  const playfair = await loadPlayfairDisplay();
+  const playfairFonts = await loadPlayfairFonts();
   return new ImageResponse(
     (
       <div
@@ -85,6 +85,7 @@ export default async function HomeOg() {
                 fontSize: 34,
                 color: INK,
                 fontStyle: "italic",
+                fontWeight: 700,
                 lineHeight: 1.2,
               }}
             >
@@ -114,14 +115,7 @@ export default async function HomeOg() {
     ),
     {
       ...size,
-      fonts: [
-        {
-          name: "Playfair Display",
-          data: playfair,
-          style: "normal",
-          weight: 700,
-        },
-      ],
+      fonts: playfairFonts,
     }
   );
 }
