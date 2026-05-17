@@ -177,7 +177,7 @@ export default function ArticleToolbar({
         aria-label={`Mark this article useful — ${up} readers so far`}
         aria-pressed={reactedAs === "up"}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-rule ${
-          reactedAs === "up" ? "bg-wash text-ink" : reactedAs ? "opacity-40" : "hover:bg-wash"
+          reactedAs === "up" ? "bg-wash text-ink" : reactedAs ? "text-muted opacity-70" : "hover:bg-wash"
         }`}
       >
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill={reactedAs === "up" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
@@ -192,7 +192,7 @@ export default function ArticleToolbar({
         aria-label={`Mark this article not useful — ${down} readers so far`}
         aria-pressed={reactedAs === "down"}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-rule ${
-          reactedAs === "down" ? "bg-wash text-ink" : reactedAs ? "opacity-40" : "hover:bg-wash"
+          reactedAs === "down" ? "bg-wash text-ink" : reactedAs ? "text-muted opacity-70" : "hover:bg-wash"
         }`}
       >
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill={reactedAs === "down" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">

@@ -1,21 +1,14 @@
 type QA = { q: string; a: string };
 
-// FAQ block rendered at the bottom of the article. Comes with FAQPage
-// JSON-LD so Google can show the questions in the result snippet.
+// FAQ block rendered at the bottom of the article.
+//
+// FAQPage JSON-LD is emitted by the article page itself (see
+// src/app/[category]/[slug]/page.tsx) so it isn't duplicated here — Google
+// flags repeated structured data on the same page.
 //
 // Rendered as a real <details>/<summary> for accessibility + keyboard nav.
 export default function ArticleFAQ({ items }: { items: QA[] }) {
   if (!items || items.length === 0) return null;
-
-  const ld = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: items.map((it) => ({
-      "@type": "Question",
-      name: it.q,
-      acceptedAnswer: { "@type": "Answer", text: it.a },
-    })),
-  };
 
   return (
     <section
@@ -23,10 +16,6 @@ export default function ArticleFAQ({ items }: { items: QA[] }) {
       aria-labelledby="faq-heading"
       className="mt-12 pt-8 border-t border-rule"
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
-      />
       <h2
         id="faq-heading"
         className="font-display font-bold text-2xl md:text-3xl mb-5"

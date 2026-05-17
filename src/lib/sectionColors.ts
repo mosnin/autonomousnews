@@ -34,3 +34,28 @@ export function sectionColor(slug: string | null | undefined): SectionColor {
   if (!slug) return FALLBACK;
   return SECTION_COLORS[slug] ?? FALLBACK;
 }
+
+// Returns 'ink' or 'paper' depending on which gives better contrast on the
+// section background. Uses a simple luminance threshold — for hex like
+// '#0f5dd2'. Threshold 140 puts mid-luminance accents (e.g. the yellow
+// arts/lifestyle hues) onto dark ink, while the darker blues/greens get
+// paper-colored text.
+export function sectionTextContrast(
+  slug: string | null | undefined
+): "ink" | "paper" {
+  const { bg } = sectionColor(slug);
+  const hex = bg.replace(/^#/, "");
+  if (hex.length !== 6) return "paper";
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  if (
+    Number.isNaN(r) ||
+    Number.isNaN(g) ||
+    Number.isNaN(b)
+  ) {
+    return "paper";
+  }
+  const luminance = (r * 299 + g * 587 + b * 114) / 1000;
+  return luminance > 140 ? "ink" : "paper";
+}

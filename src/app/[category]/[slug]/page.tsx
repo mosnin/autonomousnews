@@ -30,6 +30,7 @@ import ArticleFAQ from "@/components/ArticleFAQ";
 import { SITE } from "@/lib/site";
 import { findAuthor } from "@/lib/authors";
 import { renderArticleBody, extractChapters } from "@/lib/articleBody";
+import { sectionTextContrast } from "@/lib/sectionColors";
 import { breadcrumbListLd } from "@/lib/jsonld";
 import { coverImageAlt } from "@/lib/imageAlt";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -133,6 +134,22 @@ export default async function CategorySlugPage({
     4
   );
 
+  // FAQPage JSON-LD for the article-level FAQ. Emitted here (rather than from
+  // ArticleFAQ.tsx) so we don't double-emit the same block of structured data
+  // — Google flags duplicate FAQPage entities on the same URL.
+  const articleFaqLd =
+    article.faq && article.faq.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: article.faq.map((it) => ({
+            "@type": "Question",
+            name: it.q,
+            acceptedAnswer: { "@type": "Answer", text: it.a },
+          })),
+        }
+      : null;
+
   const articleLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -184,6 +201,12 @@ export default async function CategorySlugPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
       />
+      {articleFaqLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleFaqLd) }}
+        />
+      ) : null}
       <header className="max-w-prose mx-auto px-4 mb-8 md:mb-12 animate-fade-up">
         <div className="section-ribbon" />
         <div className="flex items-center gap-3 mb-3">
@@ -314,8 +337,11 @@ export default async function CategorySlugPage({
           return (
             <aside className="mt-10 border-t border-rule pt-6 flex gap-4 items-start">
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center font-bold font-sans flex-shrink-0 text-white"
-                style={{ background: "var(--section)" }}
+                className="w-14 h-14 rounded-full flex items-center justify-center font-bold font-sans flex-shrink-0"
+                style={{
+                  background: "var(--section)",
+                  color: `rgb(var(--${sectionTextContrast(article.category_slug)}))`,
+                }}
               >
                 {author.initials}
               </div>

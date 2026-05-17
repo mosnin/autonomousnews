@@ -48,7 +48,7 @@ export default function ArticleDisclaimer({
   if (notices.length === 0 && !aiDisclosed) return null;
 
   return (
-    <aside className="mt-8 border-t border-rule pt-4 text-xs text-muted space-y-2">
+    <aside className="mt-8 border-t border-rule pt-4 text-sm text-muted space-y-2">
       {notices.map((n) => (
         <p key={n}>{n}</p>
       ))}

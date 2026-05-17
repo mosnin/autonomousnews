@@ -50,13 +50,80 @@ export type AutoLinkOptions = {
   maxLinks?: number;
 };
 
+// Match inline markdown links of the form `[label](href)`. Used to peel
+// pre-authored links out of the paragraph text before the keyword auto-linker
+// runs, so we can render them with the appropriate affordance:
+//   - internal (href starts with "/") → next/Link, plain underline
+//   - external (href starts with "http") → <a target="_blank">, plus ↗ glyph
+//
+// The keyword auto-linker only operates on the remaining string fragments,
+// so it can never wrap text that's already inside a link.
+const MD_LINK_RE = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+
+function renderMarkdownLinks(text: string): (string | ReactNode)[] {
+  const out: (string | ReactNode)[] = [];
+  const re = new RegExp(MD_LINK_RE.source, "g");
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const label = m[1];
+    const href = m[2];
+    if (href.startsWith("/")) {
+      out.push(
+        <Link
+          key={`mdlink-${i}`}
+          href={href}
+          className="text-accent underline underline-offset-2 hover:opacity-80"
+        >
+          {label}
+        </Link>
+      );
+    } else if (href.startsWith("http")) {
+      out.push(
+        <a
+          key={`mdlink-${i}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-accent underline underline-offset-2 hover:opacity-80"
+        >
+          {label}
+          <span aria-hidden="true">↗</span>
+        </a>
+      );
+    } else {
+      // Unknown scheme (mailto:, anchor, etc.) — render as a plain anchor
+      // without external decoration.
+      out.push(
+        <a
+          key={`mdlink-${i}`}
+          href={href}
+          className="text-accent underline underline-offset-2 hover:opacity-80"
+        >
+          {label}
+        </a>
+      );
+    }
+    last = m.index + m[0].length;
+    i += 1;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out.length === 0 ? [text] : out;
+}
+
 function autoLinkParagraph(
   text: string,
   state: { used: Set<string>; linksLeft: number; exclude: Set<string> }
 ): ReactNode[] {
-  if (state.linksLeft <= 0) return [text];
+  // First, peel any explicit markdown links out so the keyword auto-linker
+  // can't wrap text that's already linked.
+  const seeded: (string | ReactNode)[] = renderMarkdownLinks(text);
 
-  let nodes: (string | ReactNode)[] = [text];
+  if (state.linksLeft <= 0) return seeded;
+
+  let nodes: (string | ReactNode)[] = seeded;
 
   for (const t of TARGETS) {
     if (state.linksLeft <= 0) break;
