@@ -29,7 +29,14 @@ on, treat it as the checklist your work has to pass.
    combined, distributed naturally — never stuffed.
 7. **Inbound links.** Every article auto-links to its category, subcategory,
    author, and topic-cluster pages. The renderer takes care of this; you
-   don't have to write them by hand.
+   don't have to write them by hand. The six clusters are: **Technology**
+   (AI & ML, Software, Hardware & Chips, Internet & Platforms, Cybersecurity),
+   **Business** (Startups & Venture, Markets, Media & Streaming,
+   Crypto & Fintech), **Science** (Space, Biotech, Climate Science,
+   Physics & Math), **Climate** (Clean Energy, Transportation,
+   Policy & COP), **Policy** (Antitrust & Regulation, Privacy & Data,
+   AI Policy, Geopolitics of Tech), and **Opinion** (Tech Criticism,
+   Essays, Letters).
 8. **Outbound links.** 2–3 inline markdown links to credible sources inside
    the body. Link text must be substantive (publication name or specific
    phrase), never "click here".
@@ -78,7 +85,7 @@ slug:           "starship-first-orbital-payload"        ← trimmed at -60
 ```
 
 Final URL: `https://yourdomain.com/<category>/<slug>` — e.g.
-`https://yourdomain.com/politics/ai-chip-export-rules`. Slugs are stable for
+`https://yourdomain.com/policy/ai-chip-export-rules`. Slugs are stable for
 the life of the article; living updates do not change the URL.
 
 ---
@@ -315,7 +322,7 @@ prompt has drifted.
 Each subcategory page gets a ~2,000-word reference guide rendered above the
 article grid. They are produced by a separate Modal worker
 (`weekly_pillar_refresh`) that runs every Monday at 08:00 UTC and rewrites
-every one of ~80 pillars in a single run.
+every one of ~25 pillars in a single run.
 
 Pillars use `gpt-5-mini` (configurable via `PILLAR_MODEL`) rather than the
 news writer's model — evergreen reference content doesn't need the

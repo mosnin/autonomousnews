@@ -34,44 +34,44 @@ describe("articleBody.renderArticleBody", () => {
   it("internal-links the first occurrence of a known phrase to its cluster URL", () => {
     const out = html(
       renderArticleBody(
-        "OpenAI is racing ahead in Artificial Intelligence research.",
+        "OpenAI is racing ahead in Cybersecurity research.",
         { maxLinks: 3 }
       )
     );
-    expect(out).toContain('href="/technology/artificial-intelligence"');
-    expect(out).toContain("Artificial Intelligence");
+    expect(out).toContain('href="/technology/cybersecurity"');
+    expect(out).toContain("Cybersecurity");
   });
 
   it("excludes hrefs in excludeHrefs (self-links to same category)", () => {
     const out = html(
       renderArticleBody(
-        "The Artificial Intelligence beat is busy this week.",
+        "The Cybersecurity beat is busy this week.",
         {
-          excludeHrefs: new Set(["/technology/artificial-intelligence"]),
+          excludeHrefs: new Set(["/technology/cybersecurity"]),
           maxLinks: 3,
         }
       )
     );
-    expect(out).not.toContain('href="/technology/artificial-intelligence"');
+    expect(out).not.toContain('href="/technology/cybersecurity"');
   });
 
   it("caps total inserted links at maxLinks", () => {
     const body =
-      "Mira Chen covers Artificial Intelligence and Software at Technology.";
+      "Mira Chen covers Cybersecurity and Software at Technology.";
     const out = html(renderArticleBody(body, { maxLinks: 1 }));
     const linkCount = (out.match(/<a\s/g) ?? []).length;
     expect(linkCount).toBe(1);
   });
 
-  it("renders longest-first so 'Artificial Intelligence' beats 'Technology'", () => {
+  it("renders longest-first so 'Cybersecurity' beats 'Technology'", () => {
     const out = html(
-      renderArticleBody("Artificial Intelligence is reshaping Technology.", {
+      renderArticleBody("Cybersecurity is reshaping Technology.", {
         maxLinks: 3,
       })
     );
-    // The "Artificial Intelligence" subcategory link should be present and
+    // The "Cybersecurity" subcategory link should be present and
     // the plain word "Technology" can still link separately.
-    expect(out).toContain('href="/technology/artificial-intelligence"');
+    expect(out).toContain('href="/technology/cybersecurity"');
   });
 });
 

@@ -43,13 +43,13 @@ describe("authors", () => {
 
   describe("selectAuthorForTopic", () => {
     it("prefers a sub-beat match over a category-only match", () => {
-      const a = selectAuthorForTopic("technology", "artificial-intelligence");
+      const a = selectAuthorForTopic("technology", "ai-and-ml");
       expect(a.slug).toBe("mira-chen");
     });
 
     it("falls back to category match when no sub-beat hits", () => {
-      const a = selectAuthorForTopic("sports", null);
-      expect(a.slug).toBe("theo-kane");
+      const a = selectAuthorForTopic("climate", null);
+      expect(a.slug).toBe("marcus-aoki");
     });
 
     it("falls back to opinion fallback if nothing matches", () => {

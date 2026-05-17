@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/taxonomy";
 
-const POPULAR_SLUGS = ["world", "us", "business", "technology", "science"];
+const POPULAR_SLUGS = ["technology", "business", "science", "climate", "policy"];
 
 export default function NotFound() {
   const popular = POPULAR_SLUGS

@@ -7,8 +7,8 @@ import {
 } from "@/lib/taxonomy";
 
 describe("taxonomy", () => {
-  it("has 16 top-level pillars", () => {
-    expect(CATEGORIES.length).toBe(16);
+  it("has 6 tech-coherent top-level pillars", () => {
+    expect(CATEGORIES.length).toBe(6);
   });
 
   it("all pillar slugs are unique and lowercased kebab", () => {
@@ -19,9 +19,9 @@ describe("taxonomy", () => {
     }
   });
 
-  it("each pillar has ≥4 subpillars and unique sub slugs within it", () => {
+  it("each pillar has ≥3 subpillars and unique sub slugs within it", () => {
     for (const c of CATEGORIES) {
-      expect(c.subcategories.length).toBeGreaterThanOrEqual(4);
+      expect(c.subcategories.length).toBeGreaterThanOrEqual(3);
       const subs = c.subcategories.map((s) => s.slug);
       expect(new Set(subs).size).toBe(subs.length);
       for (const s of c.subcategories) {
@@ -42,8 +42,8 @@ describe("taxonomy", () => {
   it("findCategory + findSubcategory round-trip", () => {
     const tech = findCategory("technology");
     expect(tech?.name).toBe("Technology");
-    const ai = findSubcategory("technology", "artificial-intelligence");
-    expect(ai?.subcategory.name).toBe("Artificial Intelligence");
+    const ai = findSubcategory("technology", "ai-and-ml");
+    expect(ai?.subcategory.name).toBe("AI & ML");
     expect(ai?.category.slug).toBe("technology");
   });
 

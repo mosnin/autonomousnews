@@ -14,8 +14,8 @@ from technotimes_agents.taxonomy import (
 )
 
 
-def test_sixteen_pillars():
-    assert len(CATEGORIES) == 16
+def test_six_pillars():
+    assert len(CATEGORIES) == 6
 
 
 def test_unique_slugs():
@@ -25,7 +25,7 @@ def test_unique_slugs():
 
 def test_each_pillar_has_subs():
     for c in CATEGORIES:
-        assert len(c.subcategories) >= 4
+        assert len(c.subcategories) >= 3
         sub_slugs = [s.slug for s in c.subcategories]
         assert len(set(sub_slugs)) == len(sub_slugs)
 
@@ -53,13 +53,13 @@ def test_authors_beat_references_real_categories():
 
 
 def test_select_author_prefers_sub_beat():
-    a = select_author("technology", "artificial-intelligence")
+    a = select_author("technology", "ai-and-ml")
     assert a.slug == "mira-chen"
 
 
 def test_select_author_falls_back_to_category():
-    a = select_author("sports", None)
-    assert a.slug == "theo-kane"
+    a = select_author("climate", None)
+    assert a.slug == "marcus-aoki"
 
 
 def test_select_author_final_fallback():

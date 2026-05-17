@@ -12,7 +12,7 @@ function bodyFor(over: Record<string, unknown> = {}) {
     title: "OpenAI Launches X",
     body: "Paragraph one.\n\nParagraph two.",
     category_slug: "technology",
-    subcategory_slug: "artificial-intelligence",
+    subcategory_slug: "ai-and-ml",
     status: "published",
     tags: ["openai", "ai"],
     source_urls: ["https://source.example/story"],

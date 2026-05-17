@@ -11,7 +11,7 @@ function fakeArticle(over: Partial<ArticleSummary> = {}): ArticleSummary {
     cover_image_url: null,
     cover_image_alt: null,
     category_slug: "technology",
-    subcategory_slug: "artificial-intelligence",
+    subcategory_slug: "ai-and-ml",
     author_name: "Mira Chen",
     author_slug: "mira-chen",
     is_breaking: false,

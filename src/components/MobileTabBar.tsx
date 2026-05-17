@@ -34,16 +34,6 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: "/world",
-    label: "World",
-    icon: (
-      <svg {...ICON_PROPS}>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-      </svg>
-    ),
-  },
-  {
     href: "/technology",
     label: "Tech",
     icon: (
@@ -54,12 +44,22 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: "/search",
-    label: "Search",
+    href: "/business",
+    label: "Business",
     icon: (
       <svg {...ICON_PROPS}>
-        <circle cx="11" cy="11" r="7" />
-        <path d="m21 21-4.3-4.3" />
+        <path d="M3 21h18" />
+        <path d="M5 21V8l7-4 7 4v13" />
+        <path d="M9 21v-6h6v6" />
+      </svg>
+    ),
+  },
+  {
+    href: "/saved",
+    label: "Saved",
+    icon: (
+      <svg {...ICON_PROPS}>
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
       </svg>
     ),
   },
