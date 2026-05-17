@@ -149,6 +149,15 @@ body {
   line-height: 0.85;
   padding: 0.35rem 0.55rem 0 0;
   color: var(--section-text);
+  shape-outside: margin-box;       /* lets text contour the cap on mobile */
+}
+
+/* Drop cap shrinks below 380px — text wrap collision risk */
+@media (max-width: 380px) {
+  .prose-article > p:first-of-type::first-letter {
+    font-size: 3rem;
+    padding-right: 0.4rem;
+  }
 }
 
 /* Pull quote — rendered when a line starts with ">> " */
@@ -161,9 +170,15 @@ body {
   color: rgb(var(--ink));
   border-top: 2px solid var(--section);
   border-bottom: 1px solid rgb(var(--rule));
-  margin: 2rem 0;
+  margin: 2rem -1.5rem;
   padding: 1.2rem 0 1.2rem;
   text-align: left;
+}
+@media (min-width: 768px) {
+  .pull-quote {
+    margin-left: -3rem;
+    margin-right: -3rem;
+  }
 }
 .pull-quote::before {
   content: "“";

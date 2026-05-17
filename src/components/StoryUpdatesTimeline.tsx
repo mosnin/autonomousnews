@@ -10,7 +10,7 @@ export default function StoryUpdatesTimeline({ updates }: { updates: Update[] })
           {updates.length} entr{updates.length === 1 ? "y" : "ies"}
         </span>
       </div>
-      <ol className="relative border-l-2 pl-5 space-y-5" style={{ borderColor: "var(--section)" }}>
+      <ol className="relative border-l-2 pl-5 space-y-5" style={{ borderColor: "rgb(var(--rule))" }}>
         {updates.map((u) => (
           <li key={u.id} className="relative">
             <span

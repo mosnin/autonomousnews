@@ -113,7 +113,7 @@ export default function ArticleCard({
               src={article.cover_image_url}
               alt={coverImageAlt(article)}
               fill
-              sizes="(max-width: 768px) 100vw, 80vw"
+              sizes="(max-width: 1024px) 100vw, 1280px"
               className="object-cover"
               priority={priority}
             />
@@ -149,7 +149,7 @@ export default function ArticleCard({
               src={article.cover_image_url}
               alt={coverImageAlt(article)}
               fill
-              sizes="(max-width: 1024px) 100vw, 66vw"
+              sizes="(max-width: 1024px) 100vw, 1280px"
               className="object-cover"
               priority={priority}
             />
@@ -178,7 +178,7 @@ export default function ArticleCard({
             src={article.cover_image_url}
             alt={coverImageAlt(article)}
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             priority={priority}
           />
