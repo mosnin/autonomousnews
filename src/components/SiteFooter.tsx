@@ -49,6 +49,7 @@ export default function SiteFooter() {
         <div className="mt-12 pt-6 border-t border-rule text-xs font-sans text-muted flex flex-col md:flex-row gap-3 md:gap-6 justify-between uppercase tracking-kicker">
           <span>© {year} {SITE.name}</span>
           <div className="flex flex-wrap gap-4">
+            <Link href="/about">About</Link>
             <Link href="/about-our-ai">About Our AI</Link>
             <Link href="/saved">Saved</Link>
             <Link href="/privacy">Privacy</Link>

@@ -13,7 +13,12 @@ export default function AboutOurAiPage() {
   return (
     <article className="max-w-3xl mx-auto px-4 pt-12 pb-16 prose-article">
       <header className="mb-8">
-        <div className="kicker text-muted mb-2">About</div>
+        <div className="kicker text-muted mb-2">
+          Technical disclosure &mdash; for the editorial statement see{" "}
+          <Link href="/about" className="text-accent underline">
+            About
+          </Link>
+        </div>
         <h1 className="headline text-4xl md:text-5xl mb-3">
           How {SITE.name} uses AI
         </h1>
