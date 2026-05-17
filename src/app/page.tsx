@@ -1,5 +1,4 @@
 import {
-  getFeaturedArticles,
   getLatestArticles,
   getMostReadArticles,
   getBreakingHeadlines,
@@ -9,33 +8,22 @@ import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
 import HeadlineTicker from "@/components/HeadlineTicker";
 import MostReadSidebar from "@/components/MostReadSidebar";
-import EditorsPicks from "@/components/EditorsPicks";
-import NewsletterSignup from "@/components/NewsletterSignup";
 
 export const revalidate = 300;
 
 export default async function HomePage() {
-  let featured = await getFeaturedArticles(8);
   let latest = await getLatestArticles(24);
   let mostRead = await getMostReadArticles(5);
   let breaking = await getBreakingHeadlines(5);
 
-  if (featured.length === 0 && latest.length === 0) {
-    featured = PLACEHOLDER_ARTICLES.filter((a) => a.is_featured).slice(0, 6);
+  if (latest.length === 0) {
     latest = PLACEHOLDER_ARTICLES;
     mostRead = PLACEHOLDER_ARTICLES.slice(0, 5);
     breaking = PLACEHOLDER_ARTICLES.filter((a) => a.is_breaking).slice(0, 5);
   }
 
-  const hero = featured[0] ?? latest[0];
-  const next = featured.slice(1, 4);
-  const picks = featured.slice(4, 7);
-  const usedIds = new Set([
-    hero?.id,
-    ...next.map((a) => a.id),
-    ...picks.map((a) => a.id),
-  ].filter(Boolean));
-  const river = latest.filter((a) => !usedIds.has(a.id));
+  const hero = latest.find((a) => a.is_featured) ?? latest[0];
+  const river = latest.filter((a) => a.id !== hero?.id);
 
   if (!hero) {
     return (
@@ -55,17 +43,6 @@ export default async function HomePage() {
         <section className="mb-10 md:mb-16 animate-fade-up">
           <ArticleCard article={hero} variant="hero" priority />
         </section>
-
-        {next.length > 0 ? (
-          <section className="rule-top rule-bottom py-8 md:py-10 mb-10 md:mb-16">
-            <h2 className="kicker text-muted mb-5">What&rsquo;s next</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {next.map((a) => (
-                <ArticleCard key={a.id} article={a} variant="compact" showImage={false} />
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         {/* River + Most-read rail */}
         <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 lg:gap-14">
@@ -97,17 +74,8 @@ export default async function HomePage() {
 
           <div className="space-y-10 lg:sticky lg:top-32 lg:self-start">
             <MostReadSidebar articles={mostRead} />
-            <NewsletterSignup source="home-rail" />
-            <AdSlot slot="home-rail" />
           </div>
         </section>
-
-        {/* Editor's Picks */}
-        {picks.length > 0 ? (
-          <section className="mt-16 md:mt-20 pt-12 border-t border-rule">
-            <EditorsPicks articles={picks} />
-          </section>
-        ) : null}
       </div>
     </>
   );

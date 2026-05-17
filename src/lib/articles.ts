@@ -53,20 +53,6 @@ export async function getLatestArticles(limit = 20): Promise<ArticleSummary[]> {
   return (data ?? []) as unknown as ArticleSummary[];
 }
 
-export async function getFeaturedArticles(limit = 5): Promise<ArticleSummary[]> {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("articles")
-    .select(SUMMARY_COLUMNS)
-    .eq("status", "published")
-    .eq("is_featured", true)
-    .order("published_at", { ascending: false })
-    .limit(limit);
-  if (error) return [];
-  return (data ?? []) as unknown as ArticleSummary[];
-}
-
 export async function getArticlesByCategory(
   categorySlug: string,
   limit = 20

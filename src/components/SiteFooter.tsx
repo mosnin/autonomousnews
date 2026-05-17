@@ -2,15 +2,22 @@ import Link from "next/link";
 import { CATEGORIES } from "@/lib/taxonomy";
 import { SITE } from "@/lib/site";
 import { sectionColor } from "@/lib/sectionColors";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
   return (
     <footer className="rule-top mt-20 bg-paper">
       <div className="max-w-content mx-auto px-4 md:px-8 py-14">
-        <Link href="/" className="nameplate text-4xl md:text-5xl block mb-10">
-          {SITE.name}
-        </Link>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+          <Link href="/" className="nameplate text-4xl md:text-5xl block">
+            {SITE.name}
+          </Link>
+          <div className="md:max-w-md w-full">
+            <p className="kicker text-muted mb-2">The daily brief</p>
+            <NewsletterSignup source="footer" compact />
+          </div>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
           {CATEGORIES.map((c) => {
             const col = sectionColor(c.slug);
@@ -43,7 +50,6 @@ export default function SiteFooter() {
           <span>© {year} {SITE.name}</span>
           <div className="flex flex-wrap gap-4">
             <Link href="/about-our-ai">About Our AI</Link>
-            <Link href="/editors-picks">Editor&rsquo;s Picks</Link>
             <Link href="/saved">Saved</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
