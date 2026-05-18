@@ -33,6 +33,12 @@ class Config:
     # model than the breaking-news writer because pillars are evergreen and
     # don't need the same time-pressure judgment.
     pillar_model: str
+    # The adversarial fact-checker that audits writer output before publish.
+    # MUST default to a different model family than `writer_model` —
+    # correlated errors (same model grading its own work) are the failure
+    # mode the checker exists to catch. `pipeline.run_pipeline` emits a
+    # warning at runtime if these end up equal.
+    checker_model: str
 
     # Output settings
     articles_per_run_min: int
@@ -57,6 +63,7 @@ class Config:
             writer_model=os.environ.get("WRITER_MODEL", "gpt-4o-mini"),
             image_model=os.environ.get("IMAGE_MODEL", "dall-e-3"),
             pillar_model=os.environ.get("PILLAR_MODEL", "gpt-5-mini"),
+            checker_model=os.environ.get("CHECKER_MODEL", "gpt-5-mini"),
             articles_per_run_min=int(os.environ.get("ARTICLES_MIN", "3")),
             articles_per_run_max=int(os.environ.get("ARTICLES_MAX", "5")),
             evergreen_ratio=float(os.environ.get("EVERGREEN_RATIO", "0.3")),

@@ -96,6 +96,10 @@ export default async function AdminArticleDetail({
         </section>
       ) : null}
 
+      {article.fact_check_report ? (
+        <FactCheckCard report={article.fact_check_report} />
+      ) : null}
+
       {article.source_urls?.length ? (
         <section>
           <div className="text-xs uppercase tracking-widest text-muted mb-1">Sources</div>
@@ -133,6 +137,66 @@ export default async function AdminArticleDetail({
         <ArticleAction id={article.id} action="archive" label="Archive" intent="danger" />
       </section>
     </div>
+  );
+}
+
+function FactCheckCard({
+  report,
+}: {
+  report: NonNullable<Article["fact_check_report"]>;
+}) {
+  // Verdict colors: green = shipped clean, amber = soft-fail then re-passed,
+  // red = a fail that somehow ended up on a published row (legacy / manual
+  // override).
+  const verdictColor =
+    report.verdict === "pass"
+      ? "bg-green-100 text-green-800 border-green-300"
+      : report.verdict === "soft_fail"
+      ? "bg-amber-100 text-amber-800 border-amber-300"
+      : "bg-red-100 text-red-800 border-red-300";
+
+  return (
+    <section className="bg-paper border border-rule p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-muted">
+          Fact-check
+        </h2>
+        <span
+          className={`text-xs font-bold uppercase tracking-wider border px-2 py-0.5 ${verdictColor}`}
+        >
+          {report.verdict}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <Field
+          label="Claims checked"
+          value={String(report.claims_total)}
+        />
+        <Field
+          label="Unsupported"
+          value={String(report.claims_unsupported)}
+        />
+        <Field label="Model" value={report.model_used || "—"} mono />
+        <Field
+          label="Cost"
+          value={`$${report.cost_usd.toFixed(4)}`}
+          mono
+        />
+      </div>
+      {report.verdict !== "pass" ? (
+        <details className="text-sm">
+          <summary className="cursor-pointer underline">
+            Why did this pass?
+          </summary>
+          <p className="mt-2 text-muted">
+            {report.verdict === "soft_fail"
+              ? "The first draft had 1-2 unsupported claims. The writer was asked to rewrite once with those claims removed; the rewritten version passed and is what shipped."
+              : "This article ships with an unresolved fact-check failure. Either it was published before phase 9 enforcement, or it was manually overridden. Reason: " +
+                (report.failure_reason ?? "(none recorded)")}
+          </p>
+        </details>
+      ) : null}
+    </section>
   );
 }
 
