@@ -319,7 +319,10 @@ export default async function CategorySlugPage({
 
       <div className="max-w-prose mx-auto px-4">
         <ArticleFAQ items={article.faq ?? []} />
-        <SourcesBlock urls={article.source_urls ?? []} />
+        <SourcesBlock
+          urls={article.source_urls ?? []}
+          sources={article.sources_used ?? null}
+        />
         <TopicChips tags={article.tags ?? []} />
         <StoryUpdatesTimeline updates={updates} />
         <AdSlot slot="article-inline" />

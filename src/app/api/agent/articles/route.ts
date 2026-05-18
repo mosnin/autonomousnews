@@ -77,6 +77,24 @@ export async function POST(req: NextRequest) {
 
   // Shared field projection used by both branches.
   const sourceUrls: string[] = body.source_urls ?? [];
+  // Structured per-source citation list from the writer pipeline.
+  // Validate shape defensively so a malformed agent payload can't corrupt
+  // the column (the column type is jsonb, which would otherwise accept
+  // anything).
+  const sourcesUsed: Array<{ title: string; publication: string; url: string }> | null =
+    Array.isArray(body.sources_used)
+      ? (body.sources_used as unknown[])
+          .filter((s): s is Record<string, unknown> =>
+            !!s && typeof s === "object"
+          )
+          .map((s: Record<string, unknown>) => ({
+            title: typeof s.title === "string" ? s.title : "",
+            publication:
+              typeof s.publication === "string" ? s.publication : "",
+            url: typeof s.url === "string" ? s.url : "",
+          }))
+          .filter((s: { url: string }) => s.url.startsWith("http"))
+      : null;
 
   let articleId: string;
   let canonicalSlug: string;
@@ -107,6 +125,7 @@ export async function POST(req: NextRequest) {
       subcategory_slug: body.subcategory_slug ?? null,
       tags: body.tags ?? [],
       source_urls: mergedSources,
+      sources_used: sourcesUsed,
       status,
       read_minutes: body.read_minutes ?? 6,
       is_featured: body.is_featured ?? false,
@@ -174,6 +193,7 @@ export async function POST(req: NextRequest) {
       author_name: body.author_name ?? "Techno Times Staff",
       author_slug: body.author_slug ?? "techno-times-staff",
       source_urls: sourceUrls,
+      sources_used: sourcesUsed,
       status,
       read_minutes: body.read_minutes ?? 6,
       is_featured: !!body.is_featured,

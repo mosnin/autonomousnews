@@ -7,9 +7,12 @@ import httpx
 import pytest
 
 from technotimes_agents.sources import (
+    Trend,
+    cluster_trends_by_topic,
     dedupe_trends,
     fetch_newsapi_top_headlines,
     fetch_thenewsapi_top,
+    guess_category,
 )
 
 
@@ -146,6 +149,58 @@ def test_dedupe_trends_drops_near_duplicates_by_normalized_title():
     titles = [t.title for t in out]
     assert "OpenAI Launches Thing" in titles
     assert "Different story entirely" in titles
+
+
+def _trend(title: str, url: str, source: str = "Wire") -> Trend:
+    return Trend(
+        title=title,
+        description=None,
+        url=url,
+        image_url=None,
+        source=source,
+        provider="newsapi",
+        published_at=None,
+        raw={},
+    )
+
+
+def test_cluster_trends_groups_same_story_across_publications():
+    a = _trend("OpenAI Launches Thing", "https://reuters.example/a", "Reuters")
+    b = _trend("openai launches thing", "https://bloomberg.example/b", "Bloomberg")
+    c = _trend("Mars rover finds water", "https://nasa.example/c", "NASA")
+    clusters = cluster_trends_by_topic([a, b, c])
+    assert len(clusters) == 2
+    by_key = {cl.topic_key: cl for cl in clusters}
+    openai_cluster = next(
+        cl for cl in clusters if "openai" in cl.primary.title.lower()
+    )
+    assert len(openai_cluster.sources) == 2
+    pubs = {s.source for s in openai_cluster.sources}
+    assert pubs == {"Reuters", "Bloomberg"}
+    mars = next(cl for cl in clusters if "mars" in cl.primary.title.lower())
+    assert len(mars.sources) == 1
+    # by_key references topic_key shape (used by editor lookup)
+    assert all(isinstance(k, str) and k for k in by_key)
+
+
+def test_cluster_trends_dedupes_sources_within_cluster_by_url():
+    a = _trend("Same story", "https://x.example/a", "Reuters")
+    a_dup = _trend("Same story", "https://x.example/a", "Reuters")
+    b = _trend("Same story", "https://y.example/b", "Bloomberg")
+    clusters = cluster_trends_by_topic([a, a_dup, b])
+    assert len(clusters) == 1
+    assert len(clusters[0].sources) == 2  # dup-URL dropped
+
+
+def test_guess_category_routes_ai_topics_to_ai_and_ml():
+    cat, sub = guess_category("OpenAI launches new model")
+    assert cat == "technology"
+    assert sub == "ai-and-ml"
+
+
+def test_guess_category_returns_none_for_unknown_topic():
+    cat, sub = guess_category("Local bakery wins award")
+    assert cat is None and sub is None
 
 
 # Silence ruff for json import (used only via type hints elsewhere).

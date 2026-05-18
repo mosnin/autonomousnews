@@ -18,8 +18,11 @@ from openai import AsyncOpenAI
 
 from .api_client import ApiClient, LogBuffer
 from .config import Config
+from .link_validator import validate_outbound_links
 from .sources import (
+    Cluster,
     Trend,
+    cluster_trends_by_topic,
     dedupe_trends,
     fetch_newsapi_top_headlines,
     fetch_thenewsapi_top,
@@ -95,27 +98,70 @@ POWER_WORDS = [
 
 WRITER_SYSTEM = """You are {author_name}, {author_title} at Techno Times.
 
-Write neutral, informative news articles in the house style of a major
-international newspaper (think The New York Times). Always:
+You are a news REPORTER, not a creative writer.
+
+You will be given 1-5 source articles about a single story. Your job is to
+synthesize a report based ONLY on what these sources say.
+
+ABSOLUTE RULES (violating any rule is grounds for the article being discarded):
+
+1. Every factual claim must be attributable to a specific source. Use one of:
+     - "According to <Publication>, ..."
+     - "<Publication> reported that..."
+     - "<Publication> notes ..."
+     - "As reported by <Publication>, ..."
+   The first time a publication is mentioned, use its full name. Subsequently
+   you may use short forms ("the Times", "Bloomberg").
+
+2. You may NOT introduce details, quotes, statistics, dates, names,
+   organizations, or context that does not appear in your sources. If a fact
+   would be useful to mention but isn't in the sources, leave it out.
+
+3. When sources conflict, report the conflict. Example: "Reuters reported
+   the figure as $X billion, while Bloomberg cited $Y billion."
+
+4. When only one source mentions something, attribute it explicitly:
+   "<Source> alone reported that..." or "Only <Source> said..."
+
+5. NEVER invent URLs. The only outbound links you may use are the source
+   URLs provided to you. Format them as inline markdown links to the
+   publication name: [Bloomberg](https://...).
+
+6. NEVER fabricate quotes. If a source paraphrases an official, you may
+   paraphrase further but you may NOT promote a paraphrase into a direct
+   quote. Direct quotes only when the source uses direct quotes AND you
+   are reproducing them verbatim.
+
+7. The article must be 800-1,200 words. Shorter than 800 words is fine if
+   the sources don't support more.
+
+8. The article must end with a "Sources" line listing every source used,
+   even those linked inline. Format: "Sources: <Pub 1>, <Pub 2>, <Pub 3>."
+
+9. If the sources are contradictory enough that no responsible summary is
+   possible, set `should_publish: false` in your output and explain in a
+   `reject_reason` field.
 
 EDITORIAL VOICE
 - Lead with the most important fact in the first paragraph.
-- Attribute every claim to a source. If a fact comes from a wire report, say so.
 - Avoid opinion. Avoid speculation. Avoid clickbait.
 - NEVER give medical, legal or financial advice. NEVER advocate for one
   political party over another. Cover policy substance, not partisan framing.
-- Target 1,000–1,500 words. Use short paragraphs. End with a short outlook
-  paragraph that summarizes where the story may go next.
+- End with a short outlook paragraph that summarizes where the story may go
+  next — but only using facts that appear in your sources.
 
 FORMATTING
 - Format H2 subheadings with '## ' on their own line.
 - Include 1–2 pull quotes by prefixing a memorable, self-contained sentence
-  (12–25 words) with '>> ' on its own line.
-- Include 2–3 outbound links to credible sources written as inline markdown
-  links: [link text](https://full.url). The link text should be substantive
-  (the source publication name or a specific phrase), never 'click here'.
+  (12–25 words) with '>> ' on its own line. Pull-quote content must come
+  from your sources, not invented.
+- Inline markdown links use the publication name as the anchor:
+  [Bloomberg](https://full.url). URLs MUST be drawn from the provided
+  source list — no exceptions.
 
-SEO REQUIREMENTS — every article MUST satisfy ALL of these
+SEO REQUIREMENTS (downstream of accuracy — satisfy these after the reporting
+rules, NEVER by inventing facts to fit a keyword) — every article MUST
+satisfy ALL of these
 - focus_keyword: ONE high-intent search phrase, 2–5 words, that this article
   is meant to rank for. Lowercase, no punctuation.
 - long_tail_keywords: 4–5 additional high-intent long-tail phrases (3–6
@@ -190,6 +236,52 @@ async def fetch_trends(cfg: Config, log: LogBuffer) -> list[Trend]:
     return deduped
 
 
+async def fetch_clusters(
+    cfg: Config, log: LogBuffer
+) -> tuple[list[Trend], list[Cluster]]:
+    """Fetch trends and group them into per-topic clusters.
+
+    Returns both the deduped flat trend list (for back-compat / editor
+    selection) and the cluster list (used by the writer so it can REPORT
+    from multiple sources instead of fabricating detail off a single
+    50-word description).
+    """
+    trends_raw: list[Trend] = []
+    if cfg.newsapi_key:
+        try:
+            t = await fetch_newsapi_top_headlines(cfg.newsapi_key)
+            trends_raw.extend(t)
+        except Exception as e:
+            await log.warn("newsapi fetch failed", error=str(e))
+    if cfg.thenewsapi_token:
+        try:
+            t = await fetch_thenewsapi_top(cfg.thenewsapi_token)
+            trends_raw.extend(t)
+        except Exception as e:
+            await log.warn("thenewsapi fetch failed", error=str(e))
+
+    deduped = dedupe_trends(trends_raw)
+    clusters = cluster_trends_by_topic(trends_raw)
+    await log.info(
+        "trends clustered",
+        raw=len(trends_raw),
+        deduped=len(deduped),
+        clusters=len(clusters),
+        multi_source_clusters=sum(1 for c in clusters if len(c.sources) > 1),
+    )
+    return deduped, clusters
+
+
+def _cluster_for_trend(t: Trend, clusters: list[Cluster]) -> Cluster | None:
+    """Find the cluster containing a given trend by normalized title."""
+    from .sources import _title_key  # local import to avoid cycle at top
+    key = _title_key(t.title)
+    for c in clusters:
+        if c.topic_key == key:
+            return c
+    return None
+
+
 async def select_topics(
     cfg: Config,
     client: AsyncOpenAI,
@@ -197,6 +289,7 @@ async def select_topics(
     n: int,
     recent_topics: list[dict[str, Any]],
     log: LogBuffer,
+    clusters: list[Cluster] | None = None,
 ) -> tuple[list[dict[str, Any]], float, int, int]:
     """Ask the editor agent for N topics with category routing."""
     headlines = [
@@ -281,8 +374,11 @@ Respond with JSON:
         sub = s.get("subcategory_slug")
         if not find_category(cat or ""):
             continue
+        picked_trend = trends[hid]
+        cluster = _cluster_for_trend(picked_trend, clusters) if clusters else None
         out.append({
-            "trend": trends[hid],
+            "trend": picked_trend,
+            "cluster": cluster,
             "category_slug": cat,
             "subcategory_slug": sub,
             "angle": s.get("angle", ""),
@@ -303,6 +399,12 @@ async def write_article(
     existing: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any] | None, float, int, int]:
     trend: Trend = selection["trend"]
+    cluster: Cluster | None = selection.get("cluster")
+    # Source set the writer is allowed to cite. Single-trend fallback for
+    # back-compat with any caller that did not run the clustering step.
+    cluster_sources: list[Trend] = (
+        list(cluster.sources) if cluster and cluster.sources else [trend]
+    )
     author: Author = select_author(
         selection["category_slug"], selection["subcategory_slug"]
     )
@@ -315,6 +417,20 @@ async def write_article(
             author,
         )
         existing_body = (existing.get("body") or "")[:6000]
+        sources_block_lines: list[str] = []
+        for i, src in enumerate(cluster_sources, start=1):
+            sources_block_lines.append(f"[{i}] {src.source}")
+            sources_block_lines.append(f"    Title: {src.title}")
+            sources_block_lines.append(f"    URL: {src.url or '(none)'}")
+            sources_block_lines.append(
+                f"    Published: {src.published_at or '(unknown)'}"
+            )
+            sources_block_lines.append(
+                f"    Body: {src.description or '(no description provided by source)'}"
+            )
+            sources_block_lines.append("")
+        sources_block = "\n".join(sources_block_lines).rstrip()
+
         user_msg = f"""Update this existing article with newly reported information.
 
 EXISTING ARTICLE (title): {existing.get('title')}
@@ -323,16 +439,20 @@ EXISTING ARTICLE (body, truncated):
 {existing_body}
 ---
 
-NEW SOURCE
-Topic: {trend.title}
+NEW SOURCES (cite all that you use; inline links MUST come from this set):
+
+{sources_block}
+
 Angle: {selection['angle']}
-Source description: {trend.description or '(none)'}
-Source URL: {trend.url or '(none)'}
-Source publication: {trend.source}
 Category: {selection['category_slug']} / {selection['subcategory_slug'] or '(none)'}
 
 Respond with JSON (same schema as a fresh article):
 {{
+  "should_publish": <bool>,
+  "reject_reason": <string or null>,
+  "sources_used": [
+    {{ "title": "<source title>", "publication": "<publication name>", "url": "<source url>" }}
+  ],
   "focus_keyword": "<2-5 word phrase>",
   "long_tail_keywords": ["<4-5 long-tail queries>"],
   "power_word": "<one from the curated list>",
@@ -357,17 +477,38 @@ Respond with JSON (same schema as a fresh article):
             power_words=", ".join(POWER_WORDS),
         )
     else:
-        user_msg = f"""Write a 1,000–1,500 word news article.
+        sources_block_lines: list[str] = []
+        for i, src in enumerate(cluster_sources, start=1):
+            sources_block_lines.append(f"[{i}] {src.source}")
+            sources_block_lines.append(f"    Title: {src.title}")
+            sources_block_lines.append(f"    URL: {src.url or '(none)'}")
+            sources_block_lines.append(
+                f"    Published: {src.published_at or '(unknown)'}"
+            )
+            sources_block_lines.append(
+                f"    Body: {src.description or '(no description provided by source)'}"
+            )
+            sources_block_lines.append("")
+        sources_block = "\n".join(sources_block_lines).rstrip()
 
-Topic: {trend.title}
-Angle: {selection['angle']}
-Source description: {trend.description or '(none)'}
-Source URL: {trend.url or '(none)'}
-Source publication: {trend.source}
-Category: {selection['category_slug']} / {selection['subcategory_slug'] or '(none)'}
+        user_msg = f"""TOPIC: {trend.title}
+SUGGESTED CATEGORY: {selection['category_slug']}
+SUGGESTED SUBCATEGORY: {selection['subcategory_slug'] or '(none)'}
+ANGLE: {selection['angle']}
+
+SOURCES (cite all that you use):
+
+{sources_block}
+
+Write your report. Cite every factual claim. Do not invent URLs or facts.
 
 Respond with JSON:
 {{
+  "should_publish": <bool — true unless sources are too contradictory to report responsibly>,
+  "reject_reason": <string or null — required when should_publish is false>,
+  "sources_used": [
+    {{ "title": "<source title>", "publication": "<publication name>", "url": "<source url>" }}
+  ],
   "focus_keyword": "<2-5 word phrase the article is meant to rank for>",
   "long_tail_keywords": ["<4-5 long-tail queries>"],
   "power_word": "<exactly one from the curated list>",
@@ -375,7 +516,7 @@ Respond with JSON:
   "slug": "<kebab-case of focus_keyword, <= 60 chars, no extra words>",
   "dek": "<one-sentence subheadline, < 200 chars>",
   "excerpt": "<3-sentence summary used for cards and SEO description>",
-  "body": "<the article as plain paragraphs separated by blank lines. H2 lines start with '## '. Include 1-2 '>> ' pull quotes. Include 2-3 inline markdown links to outbound credible sources. Focus + long-tail keywords mentioned naturally throughout for 2-3% density.>",
+  "body": "<the article, 800-1,200 words, as plain paragraphs separated by blank lines. H2 lines start with '## '. Include 1-2 '>> ' pull quotes. Inline markdown links MUST use ONLY the source URLs listed above. End with a 'Sources: <Pub 1>, <Pub 2>, ...' line.>",
   "cover_image_alt": "<descriptive alt text containing focus_keyword>",
   "seo_title": "<title tuned for search, < 70 chars, contains focus_keyword>",
   "seo_description": "<meta description, < 160 chars, focus_keyword in first half>",
@@ -383,7 +524,7 @@ Respond with JSON:
   "tags": ["<topical tags>"],
   "read_minutes": <int estimate>,
   "faq": [
-    {{ "q": "<question a real reader would search>", "a": "<2-4 sentence factual answer>" }}
+    {{ "q": "<question a real reader would search>", "a": "<2-4 sentence factual answer, sourced from the cluster>" }}
   ]
 }}
 """
@@ -416,6 +557,14 @@ Respond with JSON:
         await log.warn("writer skipped empty article", title=trend.title)
         return None, cost, pt, ct
 
+    if data.get("should_publish") is False:
+        await log.warn(
+            "writer declined to publish",
+            title=trend.title,
+            reason=str(data.get("reject_reason") or "(no reason given)")[:300],
+        )
+        return None, cost, pt, ct
+
     # Slug priority: writer's slug (built from focus_keyword) > slugified title.
     focus_kw = (data.get("focus_keyword") or "").strip()
     raw_slug = (data.get("slug") or "").strip().lower()
@@ -436,6 +585,34 @@ Respond with JSON:
             else f"{focus_kw} — illustration for Techno Times"
         )
 
+    # source_urls: every cluster URL we passed in, plus anything the writer
+    # explicitly claimed it used (intersected with the allowed set). The
+    # link-validator step downstream will hard-fail if the body contains a
+    # URL that isn't in this set.
+    cluster_urls = [s.url for s in cluster_sources if s.url]
+    sources_used_raw = data.get("sources_used") or []
+    sources_used: list[dict[str, str]] = []
+    allowed_url_set = set(cluster_urls)
+    for su in sources_used_raw:
+        if not isinstance(su, dict):
+            continue
+        url = (su.get("url") or "").strip()
+        if not url or url not in allowed_url_set:
+            continue
+        sources_used.append({
+            "title": str(su.get("title") or ""),
+            "publication": str(su.get("publication") or ""),
+            "url": url,
+        })
+    # Always include the primary trend URL as a fallback if the writer
+    # returned nothing usable in sources_used.
+    if not sources_used and trend.url:
+        sources_used.append({
+            "title": trend.title,
+            "publication": trend.source,
+            "url": trend.url,
+        })
+
     article = {
         "slug": slug,
         "title": data["title"],
@@ -447,7 +624,9 @@ Respond with JSON:
         "tags": data.get("tags", []),
         "author_name": author.name,
         "author_slug": author.slug,
-        "source_urls": [trend.url] if trend.url else [],
+        "source_urls": cluster_urls or ([trend.url] if trend.url else []),
+        "sources_used": sources_used,
+        "_allowed_urls": list(allowed_url_set),  # consumed by validator step
         "status": "published",
         "read_minutes": int(data.get("read_minutes", 6)),
         "is_featured": selection["is_featured"],
@@ -553,7 +732,7 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
             budget = {"remaining_usd": float("inf")}
 
         if not cancelled:
-            trends = await fetch_trends(cfg, log)
+            trends, clusters = await fetch_clusters(cfg, log)
             topics_considered = len(trends)
             if not trends:
                 raise RuntimeError("no trends available from any source")
@@ -564,27 +743,30 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
             recent = await api.recent_topics(days=7)
             await log.info("loaded recent topic context", count=len(recent))
 
-            selections, editor_cost, _, _ = await select_topics(
-                cfg, client, trends, n, recent, log
-            )
-            total_cost += editor_cost
-
             if cfg.dry_run:
-                await log.info(
-                    "dry-run: skipping writer + image + publish",
-                    selections=[
-                        {
-                            "title": s["trend"].title,
-                            "category": s["category_slug"],
-                            "subcategory": s["subcategory_slug"],
-                            "is_breaking": s["is_breaking"],
-                            "existing_topic_key": s.get("existing_topic_key"),
-                        }
-                        for s in selections
-                    ],
+                # Dry-run short-circuits BEFORE we call the editor LLM so the
+                # run is free. Log what the writer would have received for
+                # each cluster the editor most-likely would have picked
+                # (just the top-N clusters by multi-source breadth, then by
+                # recency — this is a debug aid only).
+                ranked = sorted(
+                    clusters,
+                    key=lambda c: (-len(c.sources), -(len(c.sources[0].title))),
+                )[:n]
+                for c in ranked:
+                    await log.info(
+                        "would write article",
+                        topic=c.primary.title,
+                        category=c.category_slug,
+                        sources=len(c.sources),
+                        source_publications=[s.source for s in c.sources],
+                    )
+                selections: list[dict[str, Any]] = []
+            else:
+                selections, editor_cost, _, _ = await select_topics(
+                    cfg, client, trends, n, recent, log, clusters=clusters
                 )
-                # Mark the run as a successful dry-run with no articles.
-                selections = []
+                total_cost += editor_cost
 
             for sel in selections:
                 # Mid-run safety: if we've already spent the remaining budget,
@@ -617,6 +799,33 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
                 )
                 total_cost += w_cost
                 if article is None:
+                    continue
+
+                # Outbound-link validation. Rejects the article if the writer
+                # invented a URL (not in the cluster's source set) OR if a
+                # source URL is dead (4xx/5xx/unreachable). This is the
+                # backstop on top of the prompt-level "never invent URLs"
+                # rule — the prompt is necessary but not sufficient.
+                allowed = article.pop("_allowed_urls", [])
+                try:
+                    vr = await validate_outbound_links(
+                        article["body"], allowed
+                    )
+                except Exception as e:
+                    await log.warn(
+                        "link validation crashed; skipping article",
+                        title=article["title"],
+                        error=str(e),
+                    )
+                    continue
+                if not vr.ok:
+                    await log.warn(
+                        "article rejected by link validator",
+                        title=article["title"],
+                        reason=vr.reason,
+                        invented=vr.invented_urls,
+                        dead=vr.dead_urls,
+                    )
                     continue
 
                 # If we matched an existing article, hand the route the

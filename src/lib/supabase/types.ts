@@ -45,6 +45,11 @@ export type Article = {
   long_tail_keywords: string[];
   power_word: string | null;
   faq: Array<{ q: string; a: string }> | null;
+  // Phase 8 — structured source citations from the writer pipeline.
+  // NULL for legacy articles produced before phase 8 shipped.
+  sources_used:
+    | Array<{ title: string; publication: string; url: string }>
+    | null;
 };
 
 export type ArticleViews = {

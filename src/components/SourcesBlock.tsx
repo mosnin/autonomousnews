@@ -1,17 +1,52 @@
-export default function SourcesBlock({ urls }: { urls: string[] }) {
-  if (!urls || urls.length === 0) return null;
+type StructuredSource = { title: string; publication: string; url: string };
+
+type Props = {
+  // Legacy: flat list of URLs (older articles only have this).
+  urls?: string[] | null;
+  // Phase 8: structured citations from the writer pipeline.
+  sources?: StructuredSource[] | null;
+};
+
+/**
+ * Renders the "Sources" block at the end of an article.
+ *
+ * Prefers the structured `sources` (title + publication + url) when the
+ * writer pipeline supplied it; falls back to the flat `urls` list (older
+ * articles produced before the phase-8 writer rewrite).
+ *
+ * Rendered on the article page after the body and FAQ, before the
+ * story-updates timeline.
+ */
+export default function SourcesBlock({ urls, sources }: Props) {
+  const structured = (sources ?? []).filter((s) => s && s.url);
+  const flat = (urls ?? []).filter(Boolean);
+
+  if (structured.length === 0 && flat.length === 0) return null;
+
   return (
     <section className="mt-10 border-t border-rule pt-6">
       <div className="kicker text-muted mb-3">Sources</div>
-      <ol className="list-decimal pl-5 space-y-1.5 font-sans text-sm">
-        {urls.map((u) => {
-          let host = u;
-          try {
-            host = new URL(u).host.replace(/^www\./, "");
-          } catch {
-            /* keep raw */
-          }
-          return (
+      {structured.length > 0 ? (
+        <ol className="list-decimal pl-5 space-y-2 font-sans text-sm">
+          {structured.map((s) => (
+            <li key={s.url}>
+              <a
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-accent underline"
+              >
+                {s.publication || hostOf(s.url)}
+              </a>
+              {s.title ? (
+                <span className="text-muted"> — {s.title}</span>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <ol className="list-decimal pl-5 space-y-1.5 font-sans text-sm">
+          {flat.map((u) => (
             <li key={u}>
               <a
                 href={u}
@@ -19,12 +54,20 @@ export default function SourcesBlock({ urls }: { urls: string[] }) {
                 rel="noopener noreferrer nofollow"
                 className="text-accent underline break-all"
               >
-                {host}
+                {hostOf(u)}
               </a>
             </li>
-          );
-        })}
-      </ol>
+          ))}
+        </ol>
+      )}
     </section>
   );
+}
+
+function hostOf(u: string) {
+  try {
+    return new URL(u).host.replace(/^www\./, "");
+  } catch {
+    return u;
+  }
 }
