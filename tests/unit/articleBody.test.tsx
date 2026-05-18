@@ -75,6 +75,44 @@ describe("articleBody.renderArticleBody", () => {
   });
 });
 
+describe("articleBody body-image allow-list", () => {
+  it("renders an image whose URL is in the allow-list", () => {
+    const allowed = new Set(["https://reuters.example/img.jpg"]);
+    const out = html(
+      renderArticleBody(
+        "Setup paragraph.\n\n![A chart](https://reuters.example/img.jpg)\n\nMore text.",
+        { allowedImageUrls: allowed, maxLinks: 0 }
+      )
+    );
+    expect(out).toContain('src="https://reuters.example/img.jpg"');
+    expect(out).toContain('alt="A chart"');
+  });
+
+  it("drops an image whose URL is NOT in the allow-list, keeping alt text", () => {
+    const allowed = new Set(["https://allowed.example/x.jpg"]);
+    const out = html(
+      renderArticleBody(
+        "![Sneaky tracker](https://evil.example/tracker.gif)",
+        { allowedImageUrls: allowed, maxLinks: 0 }
+      )
+    );
+    expect(out).not.toContain("evil.example");
+    expect(out).not.toContain("<img");
+    // Alt text falls through so the paragraph still reads.
+    expect(out).toContain("Sneaky tracker");
+  });
+
+  it("allows every image when no allow-list is supplied", () => {
+    const out = html(
+      renderArticleBody(
+        "![X](https://anywhere.example/y.jpg)",
+        { maxLinks: 0 }
+      )
+    );
+    expect(out).toContain('src="https://anywhere.example/y.jpg"');
+  });
+});
+
 describe("articleBody.extractChapters", () => {
   it("returns h2 chapters in order with slug ids", () => {
     const chapters = extractChapters(

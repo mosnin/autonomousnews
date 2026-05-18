@@ -50,6 +50,17 @@ export type Article = {
   sources_used:
     | Array<{ title: string; publication: string; url: string }>
     | null;
+  // Phase 9 — adversarial fact-check summary. NULL for legacy articles.
+  // The full claim list lives in run logs; this is just the compact
+  // summary so editors can audit publish decisions from the article page.
+  fact_check_report: {
+    verdict: "pass" | "soft_fail" | "fail";
+    failure_reason: string | null;
+    claims_total: number;
+    claims_unsupported: number;
+    model_used: string;
+    cost_usd: number;
+  } | null;
 };
 
 export type ArticleViews = {

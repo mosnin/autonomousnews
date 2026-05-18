@@ -17,6 +17,10 @@ class Trend:
     provider: str  # 'newsapi' | 'thenewsapi'
     published_at: str | None
     raw: dict[str, Any]
+    # Byline of the source article when the provider exposes it. Empty
+    # strings from upstream are normalized to None so downstream "is the
+    # author known?" checks stay simple.
+    author: str | None = None
 
 
 @dataclass
@@ -57,6 +61,8 @@ async def fetch_newsapi_top_headlines(
 
     out: list[Trend] = []
     for a in data.get("articles", []):
+        author_raw = a.get("author")
+        author = author_raw.strip() if isinstance(author_raw, str) else None
         out.append(Trend(
             title=a.get("title") or "",
             description=a.get("description"),
@@ -66,6 +72,7 @@ async def fetch_newsapi_top_headlines(
             provider="newsapi",
             published_at=a.get("publishedAt"),
             raw=a,
+            author=author or None,
         ))
     return [t for t in out if t.title]
 
@@ -90,6 +97,8 @@ async def fetch_thenewsapi_top(
 
     out: list[Trend] = []
     for a in data.get("data", []):
+        author_raw = a.get("author")
+        author = author_raw.strip() if isinstance(author_raw, str) else None
         out.append(Trend(
             title=a.get("title") or "",
             description=a.get("description") or a.get("snippet"),
@@ -99,6 +108,7 @@ async def fetch_thenewsapi_top(
             provider="thenewsapi",
             published_at=a.get("published_at"),
             raw=a,
+            author=author or None,
         ))
     return [t for t in out if t.title]
 

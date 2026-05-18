@@ -1,4 +1,9 @@
-type StructuredSource = { title: string; publication: string; url: string };
+type StructuredSource = {
+  title: string;
+  publication: string;
+  author?: string | null;
+  url: string;
+};
 
 type Props = {
   // Legacy: flat list of URLs (older articles only have this).
@@ -38,6 +43,11 @@ export default function SourcesBlock({ urls, sources }: Props) {
               >
                 {s.publication || hostOf(s.url)}
               </a>
+              {s.author ? (
+                <span className="text-muted font-sans tracking-kicker text-xs uppercase ml-1">
+                  {" "}— by {s.author}
+                </span>
+              ) : null}
               {s.title ? (
                 <span className="text-muted"> — {s.title}</span>
               ) : null}

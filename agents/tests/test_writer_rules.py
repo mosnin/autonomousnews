@@ -32,6 +32,17 @@ def test_writer_prompt_requires_attribution():
     assert "attributable to a specific source" in body
 
 
+def test_writer_prompt_mentions_author_attribution():
+    # Phase 9: when the source's byline is known, the writer must include
+    # the author in the first reference ("According to <Publication>'s
+    # <Author>, ..."). The attribution rule must mention the journalist —
+    # not only the publication.
+    body = WRITER_SYSTEM
+    lower = body.lower()
+    assert "author" in lower
+    assert "<author>" in lower
+
+
 def test_writer_prompt_caps_length_at_1200_words():
     # We deliberately tightened from 1,000-1,500 to 800-1,200 so the writer
     # has less room to drift past what sources support.

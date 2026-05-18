@@ -81,20 +81,67 @@ export async function POST(req: NextRequest) {
   // Validate shape defensively so a malformed agent payload can't corrupt
   // the column (the column type is jsonb, which would otherwise accept
   // anything).
-  const sourcesUsed: Array<{ title: string; publication: string; url: string }> | null =
-    Array.isArray(body.sources_used)
-      ? (body.sources_used as unknown[])
-          .filter((s): s is Record<string, unknown> =>
-            !!s && typeof s === "object"
-          )
-          .map((s: Record<string, unknown>) => ({
-            title: typeof s.title === "string" ? s.title : "",
-            publication:
-              typeof s.publication === "string" ? s.publication : "",
-            url: typeof s.url === "string" ? s.url : "",
-          }))
-          .filter((s: { url: string }) => s.url.startsWith("http"))
-      : null;
+  const sourcesUsed: Array<{
+    title: string;
+    publication: string;
+    author: string | null;
+    url: string;
+  }> | null = Array.isArray(body.sources_used)
+    ? (body.sources_used as unknown[])
+        .filter((s): s is Record<string, unknown> =>
+          !!s && typeof s === "object"
+        )
+        .map((s: Record<string, unknown>) => ({
+          title: typeof s.title === "string" ? s.title : "",
+          publication:
+            typeof s.publication === "string" ? s.publication : "",
+          // Author is optional; normalize empty strings to null so the
+          // frontend can render "by <author>" only when truly present.
+          author:
+            typeof s.author === "string" && s.author.trim()
+              ? s.author.trim()
+              : null,
+          url: typeof s.url === "string" ? s.url : "",
+        }))
+        .filter((s: { url: string }) => s.url.startsWith("http"))
+    : null;
+
+  // Phase 9 — adversarial fact-check summary. The agent posts the compact
+  // summary (the column type is jsonb; we shape it here defensively so a
+  // malformed payload can't corrupt the row).
+  type FactCheckReport = {
+    verdict: "pass" | "soft_fail" | "fail";
+    failure_reason: string | null;
+    claims_total: number;
+    claims_unsupported: number;
+    model_used: string;
+    cost_usd: number;
+  };
+  let factCheckReport: FactCheckReport | null = null;
+  if (body.fact_check_report && typeof body.fact_check_report === "object") {
+    const r = body.fact_check_report as Record<string, unknown>;
+    const verdict = r.verdict;
+    if (
+      verdict === "pass" ||
+      verdict === "soft_fail" ||
+      verdict === "fail"
+    ) {
+      factCheckReport = {
+        verdict,
+        failure_reason:
+          typeof r.failure_reason === "string" ? r.failure_reason : null,
+        claims_total:
+          typeof r.claims_total === "number" ? r.claims_total : 0,
+        claims_unsupported:
+          typeof r.claims_unsupported === "number"
+            ? r.claims_unsupported
+            : 0,
+        model_used:
+          typeof r.model_used === "string" ? r.model_used : "",
+        cost_usd: typeof r.cost_usd === "number" ? r.cost_usd : 0,
+      };
+    }
+  }
 
   let articleId: string;
   let canonicalSlug: string;
@@ -126,6 +173,7 @@ export async function POST(req: NextRequest) {
       tags: body.tags ?? [],
       source_urls: mergedSources,
       sources_used: sourcesUsed,
+      fact_check_report: factCheckReport,
       status,
       read_minutes: body.read_minutes ?? 6,
       is_featured: body.is_featured ?? false,
@@ -194,6 +242,7 @@ export async function POST(req: NextRequest) {
       author_slug: body.author_slug ?? "techno-times-staff",
       source_urls: sourceUrls,
       sources_used: sourcesUsed,
+      fact_check_report: factCheckReport,
       status,
       read_minutes: body.read_minutes ?? 6,
       is_featured: !!body.is_featured,

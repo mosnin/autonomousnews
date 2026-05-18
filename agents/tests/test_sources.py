@@ -55,6 +55,7 @@ THENEWSAPI_RESPONSE = {
             "language": "en",
             "published_at": "2026-05-16T10:30:00.000Z",
             "source": "AnotherWire",
+            "author": "Pat Sample",
         },
     ],
 }
@@ -84,6 +85,10 @@ async def test_fetch_newsapi_parses_top_headlines(monkeypatch):
     assert trends[0].provider == "newsapi"
     assert trends[0].source == "Reuters"
     assert trends[0].image_url == "https://reuters.example/img.jpg"
+    # Byline must flow through so the writer can cite the journalist.
+    assert trends[0].author == "Jane Doe"
+    # And missing/empty author values are normalized to None.
+    assert trends[1].author is None
 
 
 @pytest.mark.asyncio
@@ -108,6 +113,24 @@ async def test_fetch_thenewsapi_parses_top(monkeypatch):
     assert len(trends) == 1
     assert trends[0].provider == "thenewsapi"
     assert trends[0].title == "Big chip deal closes"
+    assert trends[0].author == "Pat Sample"
+
+
+def test_trend_dataclass_has_author_field():
+    # Authors are the second leg of the citation system (publication is the
+    # first). The field must exist so the writer can cite the journalist.
+    t = Trend(
+        title="x",
+        description=None,
+        url=None,
+        image_url=None,
+        source="X",
+        provider="newsapi",
+        published_at=None,
+        raw={},
+    )
+    assert hasattr(t, "author")
+    assert t.author is None  # default
 
 
 def test_dedupe_trends_drops_near_duplicates_by_normalized_title():

@@ -11,6 +11,7 @@ import json
 import re
 import time
 import uuid
+from dataclasses import asdict
 from typing import Any
 
 import httpx
@@ -18,6 +19,11 @@ from openai import AsyncOpenAI
 
 from .api_client import ApiClient, LogBuffer
 from .config import Config
+from .fact_checker import (
+    FactCheckReport,
+    fact_check_article,
+    summarize_report,
+)
 from .link_validator import validate_outbound_links
 from .sources import (
     Cluster,
@@ -112,6 +118,7 @@ ABSOLUTE RULES (violating any rule is grounds for the article being discarded):
      - "As reported by <Publication>, ..."
    The first time a publication is mentioned, use its full name. Subsequently
    you may use short forms ("the Times", "Bloomberg").
+   When the source's author is known, use "According to <Publication>'s <Author>, ..." on the first reference. Subsequent references may use the publication short-name alone.
 
 2. You may NOT introduce details, quotes, statistics, dates, names,
    organizations, or context that does not appear in your sources. If a fact
@@ -419,11 +426,21 @@ async def write_article(
         existing_body = (existing.get("body") or "")[:6000]
         sources_block_lines: list[str] = []
         for i, src in enumerate(cluster_sources, start=1):
-            sources_block_lines.append(f"[{i}] {src.source}")
+            # Header line carries the author when known so the writer can
+            # cite "According to <Publication>'s <Author>, ..." per rule #1.
+            header = (
+                f"[{i}] {src.source} — by {src.author}"
+                if src.author
+                else f"[{i}] {src.source}"
+            )
+            sources_block_lines.append(header)
             sources_block_lines.append(f"    Title: {src.title}")
             sources_block_lines.append(f"    URL: {src.url or '(none)'}")
             sources_block_lines.append(
                 f"    Published: {src.published_at or '(unknown)'}"
+            )
+            sources_block_lines.append(
+                f"    Author: {src.author or '(unknown)'}"
             )
             sources_block_lines.append(
                 f"    Body: {src.description or '(no description provided by source)'}"
@@ -451,7 +468,7 @@ Respond with JSON (same schema as a fresh article):
   "should_publish": <bool>,
   "reject_reason": <string or null>,
   "sources_used": [
-    {{ "title": "<source title>", "publication": "<publication name>", "url": "<source url>" }}
+    {{ "title": "<source title>", "publication": "<publication name>", "author": "<source byline, or null if unknown>", "url": "<source url>" }}
   ],
   "focus_keyword": "<2-5 word phrase>",
   "long_tail_keywords": ["<4-5 long-tail queries>"],
@@ -479,11 +496,21 @@ Respond with JSON (same schema as a fresh article):
     else:
         sources_block_lines: list[str] = []
         for i, src in enumerate(cluster_sources, start=1):
-            sources_block_lines.append(f"[{i}] {src.source}")
+            # Header line carries the author when known so the writer can
+            # cite "According to <Publication>'s <Author>, ..." per rule #1.
+            header = (
+                f"[{i}] {src.source} — by {src.author}"
+                if src.author
+                else f"[{i}] {src.source}"
+            )
+            sources_block_lines.append(header)
             sources_block_lines.append(f"    Title: {src.title}")
             sources_block_lines.append(f"    URL: {src.url or '(none)'}")
             sources_block_lines.append(
                 f"    Published: {src.published_at or '(unknown)'}"
+            )
+            sources_block_lines.append(
+                f"    Author: {src.author or '(unknown)'}"
             )
             sources_block_lines.append(
                 f"    Body: {src.description or '(no description provided by source)'}"
@@ -507,7 +534,7 @@ Respond with JSON:
   "should_publish": <bool — true unless sources are too contradictory to report responsibly>,
   "reject_reason": <string or null — required when should_publish is false>,
   "sources_used": [
-    {{ "title": "<source title>", "publication": "<publication name>", "url": "<source url>" }}
+    {{ "title": "<source title>", "publication": "<publication name>", "author": "<source byline, or null if unknown>", "url": "<source url>" }}
   ],
   "focus_keyword": "<2-5 word phrase the article is meant to rank for>",
   "long_tail_keywords": ["<4-5 long-tail queries>"],
@@ -591,17 +618,29 @@ Respond with JSON:
     # URL that isn't in this set.
     cluster_urls = [s.url for s in cluster_sources if s.url]
     sources_used_raw = data.get("sources_used") or []
-    sources_used: list[dict[str, str]] = []
+    sources_used: list[dict[str, Any]] = []
     allowed_url_set = set(cluster_urls)
+    # Authoritative author-by-URL map from the cluster — we trust this over
+    # whatever the writer echoes back so we can't be tricked into inventing
+    # a byline.
+    author_by_url = {s.url: s.author for s in cluster_sources if s.url}
     for su in sources_used_raw:
         if not isinstance(su, dict):
             continue
         url = (su.get("url") or "").strip()
         if not url or url not in allowed_url_set:
             continue
+        # Prefer the cluster's author (ground truth from the news API);
+        # fall back to whatever the writer echoed if the cluster lacks one.
+        author = author_by_url.get(url)
+        if not author:
+            raw_author = su.get("author")
+            if isinstance(raw_author, str) and raw_author.strip():
+                author = raw_author.strip()
         sources_used.append({
             "title": str(su.get("title") or ""),
             "publication": str(su.get("publication") or ""),
+            "author": author or None,
             "url": url,
         })
     # Always include the primary trend URL as a fallback if the writer
@@ -610,6 +649,7 @@ Respond with JSON:
         sources_used.append({
             "title": trend.title,
             "publication": trend.source,
+            "author": trend.author or None,
             "url": trend.url,
         })
 
@@ -800,6 +840,116 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
                 total_cost += w_cost
                 if article is None:
                     continue
+
+                # ---- Adversarial fact-check (phase 9) -------------------
+                # An independent LLM (different family from the writer)
+                # reads the finished article and flags every claim that
+                # isn't grounded in the source bundle. Hard-fail discards
+                # the article. Soft-fail (1–2 claims) gets one rewrite.
+                cluster_for_check: Cluster | None = sel.get("cluster")
+                if cluster_for_check is None:
+                    # Single-trend fallback so the checker always has SOME
+                    # source to compare against (mirrors write_article).
+                    cluster_for_check = Cluster(
+                        topic_key=article.get("topic_key") or "",
+                        category_slug=sel["category_slug"],
+                        subcategory_slug=sel["subcategory_slug"],
+                        sources=[sel["trend"]],
+                    )
+
+                fc_report = await fact_check_article(
+                    cfg, client, article["body"], cluster_for_check, log
+                )
+                total_cost += fc_report.cost_usd
+                await log.info(
+                    "fact-check",
+                    article_slug=article["slug"],
+                    verdict=fc_report.verdict,
+                    claims_total=len(fc_report.claims),
+                    claims_unsupported=len(fc_report.unsupported),
+                    cost_usd=round(fc_report.cost_usd, 4),
+                )
+
+                if fc_report.verdict == "soft_fail":
+                    # One retry: ask the writer to rewrite with the flagged
+                    # claims removed, then re-check. If the second pass
+                    # still fails, we discard.
+                    await log.info(
+                        "fact-check soft_fail — requesting writer retry",
+                        article_slug=article["slug"],
+                        unsupported=[
+                            c.text[:200] for c in fc_report.unsupported[:5]
+                        ],
+                        reason=fc_report.failure_reason,
+                    )
+                    retry_sel = dict(sel)
+                    retry_sel["angle"] = (
+                        f"{sel.get('angle', '')}\n\n"
+                        "REWRITE NOTE: The previous draft contained the "
+                        "following unsupported claims. Remove them entirely "
+                        "or replace them with claims that ARE in the source "
+                        "set. Do not invent replacements.\n"
+                        + "\n".join(
+                            f"- {c.text}" for c in fc_report.unsupported
+                        )
+                    )
+                    retry_article, retry_cost, _, _ = await write_article(
+                        cfg, client, retry_sel, log, existing=existing
+                    )
+                    total_cost += retry_cost
+                    if retry_article is None:
+                        await log.warn(
+                            "fact-check soft_fail retry produced no article",
+                            article_slug=article["slug"],
+                        )
+                        continue
+
+                    retry_report = await fact_check_article(
+                        cfg,
+                        client,
+                        retry_article["body"],
+                        cluster_for_check,
+                        log,
+                    )
+                    total_cost += retry_report.cost_usd
+                    await log.info(
+                        "fact-check retry",
+                        article_slug=retry_article["slug"],
+                        verdict=retry_report.verdict,
+                        claims_total=len(retry_report.claims),
+                        claims_unsupported=len(retry_report.unsupported),
+                        cost_usd=round(retry_report.cost_usd, 4),
+                    )
+                    if retry_report.verdict != "pass":
+                        await log.warn(
+                            "fact-check retry still failed — discarding",
+                            article_slug=retry_article["slug"],
+                            reason=retry_report.failure_reason,
+                            unsupported=[
+                                c.text[:120]
+                                for c in retry_report.unsupported[:5]
+                            ],
+                        )
+                        continue
+                    # Replace the article with the cleaner retry; the
+                    # summary we persist mentions the soft-fail history.
+                    article = retry_article
+                    fc_report = retry_report
+
+                if fc_report.verdict == "fail":
+                    await log.warn(
+                        "fact-check failed — discarding article",
+                        article_slug=article["slug"],
+                        unsupported=[
+                            c.text[:120] for c in fc_report.unsupported[:5]
+                        ],
+                        reason=fc_report.failure_reason,
+                    )
+                    continue
+
+                # Persist the compact summary on the article row. Full
+                # claim list stays in run logs only — see fact_checker.py.
+                article["fact_check_report"] = summarize_report(fc_report)
 
                 # Outbound-link validation. Rejects the article if the writer
                 # invented a URL (not in the cluster's source set) OR if a
