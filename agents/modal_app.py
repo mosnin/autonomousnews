@@ -85,6 +85,37 @@ def manual_pillar_refresh() -> dict:
     return asyncio.run(run_pillar_refresh(cfg, trigger="manual"))
 
 
+# ----------------------------------------------------------------------
+# Auditor — daily at 03:00 UTC. Samples a small fraction of the last 24h
+# of published articles, re-fetches their cited sources from the live web,
+# and re-runs the fact-checker against the fresh source bodies. Writes
+# one row to `audit_reports` per audited article. Surfaces in
+# /admin/audits as an operator action queue — we never auto-unpublish.
+# ----------------------------------------------------------------------
+@app.function(
+    secrets=secrets,
+    timeout=1800,                     # plenty for ~10 audits at ~30s each
+    schedule=modal.Cron("0 3 * * *"), # 03:00 UTC daily
+)
+def daily_auditor() -> dict:
+    """Spawned once a day by Modal's scheduler."""
+    from technotimes_agents.auditor import run_auditor
+    from technotimes_agents.config import Config
+
+    cfg = Config.from_env()
+    return asyncio.run(run_auditor(cfg, trigger="cron-daily"))
+
+
+@app.function(secrets=secrets, timeout=1800)
+def manual_auditor() -> dict:
+    """`modal run modal_app.py::manual_auditor` for ad-hoc audits."""
+    from technotimes_agents.auditor import run_auditor
+    from technotimes_agents.config import Config
+
+    cfg = Config.from_env()
+    return asyncio.run(run_auditor(cfg, trigger="manual"))
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` triggers one manual news pipeline run."""

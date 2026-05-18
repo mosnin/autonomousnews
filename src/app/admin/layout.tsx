@@ -25,6 +25,7 @@ export default function AdminLayout({
               <Link href="/admin/authors" className="hover:underline">Authors</Link>
               <Link href="/admin/runs" className="hover:underline">Runs</Link>
               <Link href="/admin/links" className="hover:underline">Links</Link>
+              <Link href="/admin/audits" className="hover:underline">Audits</Link>
               <Link href="/admin/health" className="hover:underline">Health</Link>
             </nav>
           </div>

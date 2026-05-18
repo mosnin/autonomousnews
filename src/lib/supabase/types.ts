@@ -172,6 +172,30 @@ export type AuthorRow = {
   created_at: string;
 };
 
+export type AuditRecommendation = "keep" | "correct" | "unpublish";
+
+// Phase 10 — post-hoc auditor.
+// One row per audited article per audit run. The auditor re-fetches the
+// article's cited sources from the live web and re-runs the fact-checker
+// against the fresh source bodies. Recommendations are advisory — the
+// operator decides what to do from /admin/audits.
+export type AuditReport = {
+  id: string;
+  article_id: string | null;
+  audited_at: string;
+  audit_run_id: string | null;
+  claims_total: number;
+  claims_unsupported: number;
+  drift_from_source: boolean;
+  broken_source_count: number;
+  recommendation: AuditRecommendation;
+  notes: string | null;
+  model_used: string;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  cost_usd: number | null;
+};
+
 export type CostLedgerRow = {
   day: string;
   openai_cost_usd: number;
@@ -210,6 +234,14 @@ export type Database = {
       agent_run_pillars: TableHelper<
         { run_id: string; category_slug: string; subcategory_slug: string; created_at: string },
         "run_id" | "category_slug" | "subcategory_slug"
+      >;
+      audit_reports: TableHelper<
+        AuditReport,
+        | "claims_total"
+        | "claims_unsupported"
+        | "drift_from_source"
+        | "recommendation"
+        | "model_used"
       >;
     };
     Views: {
