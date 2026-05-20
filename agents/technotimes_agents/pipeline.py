@@ -12,6 +12,7 @@ import re
 import time
 import uuid
 from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -19,6 +20,7 @@ from openai import AsyncOpenAI
 
 from .api_client import ApiClient, LogBuffer
 from .config import Config
+from .distribution import post_to_discord, post_to_slack, post_to_x
 from .fact_checker import (
     FactCheckReport,
     fact_check_article,
@@ -31,6 +33,8 @@ from .sources import (
     cluster_trends_by_topic,
     dedupe_trends,
     fetch_newsapi_top_headlines,
+    fetch_recent_filings,
+    fetch_recent_papers,
     fetch_thenewsapi_top,
 )
 from .taxonomy import (
@@ -89,6 +93,10 @@ N most newsworthy, story-worthy items and assign each to a category and
 subcategory from a fixed taxonomy. Avoid duplicates, sports scores without
 context, and headlines that are pure clickbait. Prefer stories of global
 significance.
+
+Primary sources (SEC filings, arXiv papers) take priority — pick at least 1
+per run when available. We are first-with-the-news there: those filings and
+papers reach us before the wire services rewrite them.
 
 You MUST respond as valid JSON matching the schema the user supplies.
 """
@@ -221,23 +229,79 @@ def category_menu_text() -> str:
 
 
 # --- pipeline --------------------------------------------------------------
-async def fetch_trends(cfg: Config, log: LogBuffer) -> list[Trend]:
-    trends: list[Trend] = []
-    if cfg.newsapi_key:
-        try:
-            t = await fetch_newsapi_top_headlines(cfg.newsapi_key)
-            await log.info("fetched newsapi", count=len(t))
-            trends.extend(t)
-        except Exception as e:
-            await log.warn("newsapi fetch failed", error=str(e))
-    if cfg.thenewsapi_token:
-        try:
-            t = await fetch_thenewsapi_top(cfg.thenewsapi_token)
-            await log.info("fetched thenewsapi", count=len(t))
-            trends.extend(t)
-        except Exception as e:
-            await log.warn("thenewsapi fetch failed", error=str(e))
+# How fresh a primary-source trend (SEC filing / arXiv paper) must be for the
+# cluster it lands in to be flagged as breaking news.
+BREAKING_WINDOW_MINUTES = 30
 
+
+async def _gather_raw_trends(cfg: Config, log: LogBuffer) -> list[Trend]:
+    """Fan out across all four source clients in parallel and merge results.
+
+    Two aggregator providers (newsapi, thenewsapi) and two PRIMARY sources
+    (SEC EDGAR filings, arXiv papers). Primary sources are upstream of the
+    aggregators — reaching them directly is how we break news rather than
+    rewrite it. Each client is independently fault-tolerant: a failure in
+    one provider never sinks the run.
+    """
+
+    async def _run(name: str, coro) -> list[Trend]:
+        try:
+            t = await coro
+            await log.info(f"fetched {name}", count=len(t))
+            return t
+        except Exception as e:
+            await log.warn(f"{name} fetch failed", error=str(e))
+            return []
+
+    tasks: list[Any] = []
+    if cfg.newsapi_key:
+        tasks.append(_run(
+            "newsapi", fetch_newsapi_top_headlines(cfg.newsapi_key)))
+    if cfg.thenewsapi_token:
+        tasks.append(_run(
+            "thenewsapi", fetch_thenewsapi_top(cfg.thenewsapi_token)))
+    # Primary sources need no API key — they are public endpoints.
+    tasks.append(_run("sec-edgar", fetch_recent_filings()))
+    tasks.append(_run("arxiv", fetch_recent_papers()))
+
+    results = await asyncio.gather(*tasks)
+    trends: list[Trend] = []
+    for chunk in results:
+        trends.extend(chunk)
+    return trends
+
+
+def _published_within(trend: Trend, minutes: int) -> bool:
+    """True when `trend.published_at` parses and is within `minutes` of now."""
+    raw = trend.published_at
+    if not raw:
+        return False
+    val = raw.strip()
+    try:
+        if val.endswith("Z"):
+            val = val[:-1] + "+00:00"
+        dt = datetime.fromisoformat(val)
+    except ValueError:
+        return False
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    delta = datetime.now(timezone.utc) - dt.astimezone(timezone.utc)
+    return timedelta(0) <= delta <= timedelta(minutes=minutes)
+
+
+def cluster_is_breaking(cluster: Cluster | None) -> bool:
+    """A cluster is breaking when it contains a PRIMARY-source trend (SEC
+    filing / arXiv paper) published within `BREAKING_WINDOW_MINUTES`."""
+    if cluster is None:
+        return False
+    return any(
+        s.is_primary and _published_within(s, BREAKING_WINDOW_MINUTES)
+        for s in cluster.sources
+    )
+
+
+async def fetch_trends(cfg: Config, log: LogBuffer) -> list[Trend]:
+    trends = await _gather_raw_trends(cfg, log)
     deduped = dedupe_trends(trends)
     await log.info("trends deduped", before=len(trends), after=len(deduped))
     return deduped
@@ -253,20 +317,7 @@ async def fetch_clusters(
     from multiple sources instead of fabricating detail off a single
     50-word description).
     """
-    trends_raw: list[Trend] = []
-    if cfg.newsapi_key:
-        try:
-            t = await fetch_newsapi_top_headlines(cfg.newsapi_key)
-            trends_raw.extend(t)
-        except Exception as e:
-            await log.warn("newsapi fetch failed", error=str(e))
-    if cfg.thenewsapi_token:
-        try:
-            t = await fetch_thenewsapi_top(cfg.thenewsapi_token)
-            trends_raw.extend(t)
-        except Exception as e:
-            await log.warn("thenewsapi fetch failed", error=str(e))
-
+    trends_raw = await _gather_raw_trends(cfg, log)
     deduped = dedupe_trends(trends_raw)
     clusters = cluster_trends_by_topic(trends_raw)
     await log.info(
@@ -275,6 +326,8 @@ async def fetch_clusters(
         deduped=len(deduped),
         clusters=len(clusters),
         multi_source_clusters=sum(1 for c in clusters if len(c.sources) > 1),
+        primary_trends=sum(1 for t in trends_raw if t.is_primary),
+        breaking_clusters=sum(1 for c in clusters if cluster_is_breaking(c)),
     )
     return deduped, clusters
 
@@ -307,6 +360,10 @@ async def select_topics(
             "url": t.url,
             "source": t.source,
             "image_url": t.image_url,
+            # Surface the primary-source flag so the editor can honor the
+            # "pick at least 1 primary source per run" instruction.
+            "is_primary_source": t.is_primary,
+            "provider_kind": t.provider_kind,
         }
         for i, t in enumerate(trends[:80])
     ]
@@ -383,13 +440,20 @@ Respond with JSON:
             continue
         picked_trend = trends[hid]
         cluster = _cluster_for_trend(picked_trend, clusters) if clusters else None
+        # The editor may flag breaking news, but a fresh primary source
+        # (SEC filing / arXiv paper) in the cluster makes it breaking by
+        # definition — we have it before the wires do.
+        is_breaking = (
+            bool(s.get("is_breaking", False))
+            or cluster_is_breaking(cluster)
+        )
         out.append({
             "trend": picked_trend,
             "cluster": cluster,
             "category_slug": cat,
             "subcategory_slug": sub,
             "angle": s.get("angle", ""),
-            "is_breaking": bool(s.get("is_breaking", False)),
+            "is_breaking": is_breaking,
             "is_featured": bool(s.get("is_featured", False)),
             "existing_topic_key": s.get("existing_topic_key") or None,
         })
@@ -1043,6 +1107,18 @@ async def run_pipeline(cfg: Config, trigger: str = "cron") -> dict[str, Any]:
                             "article published",
                             id=result.get("id"),
                             title=article["title"],
+                        )
+                        # Fan out to every social channel that has
+                        # credentials configured. Living-updates are
+                        # skipped — re-posting the same story on every
+                        # revision would spam followers. Each channel is
+                        # best-effort: return_exceptions keeps one failing
+                        # channel from breaking the run or the others.
+                        await asyncio.gather(
+                            post_to_x(article, log),
+                            post_to_slack(article, log),
+                            post_to_discord(article, log),
+                            return_exceptions=True,
                         )
                 except httpx.HTTPStatusError as e:
                     await log.warn(
