@@ -81,7 +81,7 @@ Generate these once and reuse:
    cd agents
    modal deploy modal_app.py
    ```
-   Modal will run `hourly_run()` once per hour on its own clock.
+   Modal will run `quarter_hourly_run()` every 15 minutes on its own clock.
 4. **Dry-run smoke test** (recommended before the first real run — costs
    only the editor agent's tokens, no writer or DALL·E calls):
    ```bash
@@ -191,5 +191,5 @@ first cron tick. Re-running the script triggers the living-update path
   don't exist yet — add them before going live.
 - An email at `corrections@yourdomain.com` that goes somewhere. Linked
   from `/about-our-ai`.
-- Run a `modal run modal_app.py` at least twice before the real hourly
+- Run a `modal run modal_app.py` at least twice before the real 15-minute
   schedule kicks in, to catch config issues without burning budget.

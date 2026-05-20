@@ -7,6 +7,7 @@ import {
   getAdminArticles,
   getSpendByAgent,
   getSpendSummary,
+  getDistributionStatus,
 } from "@/lib/admin/queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import StatusPill from "@/components/admin/StatusPill";
@@ -28,6 +29,8 @@ export default async function AdminOverview() {
       getSpendByAgent(30),
       getSpendSummary(),
     ]);
+
+  const distribution = getDistributionStatus();
 
   return (
     <div className="space-y-8">
@@ -154,6 +157,33 @@ export default async function AdminOverview() {
           value={stats.lastRunStatus ?? "—"}
           accent={stats.lastRunStatus === "failed" ? "bad" : undefined}
         />
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold mb-3">Distribution</h2>
+        <div className="bg-paper border border-rule p-4">
+          <p className="text-sm text-muted mb-3">
+            Channels new articles are pushed to. Unconfigured channels are
+            skipped silently by the agent worker — set the env var to enable.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {distribution.map((ch) => (
+              <div key={ch.key} className="border border-rule p-3">
+                <div className="text-sm font-bold">{ch.label}</div>
+                <div
+                  className={`mt-1 text-xs font-bold uppercase tracking-widest ${
+                    ch.configured ? "text-green-600" : "text-muted"
+                  }`}
+                >
+                  {ch.configured ? "Configured" : "Not configured"}
+                </div>
+                <code className="mt-1 block text-[10px] text-muted">
+                  {ch.envVar}
+                </code>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section>

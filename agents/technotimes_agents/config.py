@@ -64,8 +64,11 @@ class Config:
             image_model=os.environ.get("IMAGE_MODEL", "dall-e-3"),
             pillar_model=os.environ.get("PILLAR_MODEL", "gpt-5-mini"),
             checker_model=os.environ.get("CHECKER_MODEL", "gpt-5-mini"),
-            articles_per_run_min=int(os.environ.get("ARTICLES_MIN", "3")),
-            articles_per_run_max=int(os.environ.get("ARTICLES_MAX", "5")),
+            # Defaults are 2/3 because the news pipeline now runs every 15
+            # minutes (4 slots/hour) instead of hourly — keeps total daily
+            # output roughly flat at ~96 articles/day.
+            articles_per_run_min=int(os.environ.get("ARTICLES_MIN", "2")),
+            articles_per_run_max=int(os.environ.get("ARTICLES_MAX", "3")),
             evergreen_ratio=float(os.environ.get("EVERGREEN_RATIO", "0.3")),
             dry_run=os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes"),
         )

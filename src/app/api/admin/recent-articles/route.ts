@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminApiAuthorized } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-// Feeds the post-hoc auditor (Modal cron `daily_auditor`). Returns articles
-// published in a recent time window so the auditor can random-sample some of
-// them and re-fact-check against their cited sources.
+// Feeds the post-hoc auditor (Modal cron `daily_auditor`) and the daily
+// email digest (Modal cron `daily_digest`). Returns articles published in a
+// recent time window so callers can re-fact-check (auditor) or summarize
+// (digest) them. An optional `limit` query param caps the result count.
 //
 // Service-role / admin-API-key only — never exposed to readers.
 export async function GET(req: NextRequest) {
@@ -35,15 +36,23 @@ export async function GET(req: NextRequest) {
 
   const sinceIso = new Date(Date.now() - windowMs).toISOString();
 
+  // Optional limit (1..500). Defaults to 500 so the auditor's existing
+  // sampling behavior is unchanged when no limit is supplied.
+  const limitParam = Number(url.searchParams.get("limit"));
+  const limit =
+    Number.isFinite(limitParam) && limitParam > 0
+      ? Math.min(Math.floor(limitParam), 500)
+      : 500;
+
   const { data, error } = await supabase
     .from("articles")
     .select(
-      "id, slug, title, category_slug, published_at, sources_used"
+      "id, slug, title, dek, cover_image_url, category_slug, published_at, sources_used"
     )
     .eq("status", "published")
     .gte("published_at", sinceIso)
     .order("published_at", { ascending: false })
-    .limit(500);
+    .limit(limit);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

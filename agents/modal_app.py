@@ -1,4 +1,4 @@
-"""Modal app: hourly news + weekly pillar pipelines for Techno Times.
+"""Modal app: 15-minute news + weekly pillar pipelines for Techno Times.
 
 Deploy with:
 
@@ -31,15 +31,20 @@ secrets = [modal.Secret.from_name("technotimes-secrets")]
 
 
 # ----------------------------------------------------------------------
-# News pipeline — hourly
+# News pipeline — every 15 minutes
 # ----------------------------------------------------------------------
 @app.function(
     secrets=secrets,
     timeout=600,
-    schedule=modal.Period(hours=1),
+    schedule=modal.Cron("*/15 * * * *"),
 )
-def hourly_run() -> dict:
-    """Spawned once per hour by Modal's scheduler."""
+def quarter_hourly_run() -> dict:
+    """Spawned every 15 minutes by Modal's scheduler.
+
+    Four slots an hour at a reduced per-run article count keeps total
+    output flat (~96/day) while pushing each story to social channels
+    sooner — distribution no longer waits up to an hour for the next run.
+    """
     from technotimes_agents.config import Config
     from technotimes_agents.pipeline import run_pipeline
 
@@ -83,6 +88,36 @@ def manual_pillar_refresh() -> dict:
 
     cfg = Config.from_env()
     return asyncio.run(run_pillar_refresh(cfg, trigger="manual"))
+
+
+# ----------------------------------------------------------------------
+# Daily digest — emails the top 10 stories of the last 24h to every
+# confirmed newsletter subscriber at 13:00 UTC. A distribution channel
+# that doesn't depend on Google: it reaches readers directly. No-op when
+# RESEND_API_KEY is unset.
+# ----------------------------------------------------------------------
+@app.function(
+    secrets=secrets,
+    timeout=600,
+    schedule=modal.Cron("0 13 * * *"), # 13:00 UTC daily
+)
+def daily_digest() -> dict:
+    """Spawned once a day by Modal's scheduler."""
+    from technotimes_agents.config import Config
+    from technotimes_agents.distribution import send_daily_digest
+
+    cfg = Config.from_env()
+    return asyncio.run(send_daily_digest(cfg))
+
+
+@app.function(secrets=secrets, timeout=600)
+def manual_digest() -> dict:
+    """`modal run modal_app.py::manual_digest` for ad-hoc digest sends."""
+    from technotimes_agents.config import Config
+    from technotimes_agents.distribution import send_daily_digest
+
+    cfg = Config.from_env()
+    return asyncio.run(send_daily_digest(cfg))
 
 
 # ----------------------------------------------------------------------

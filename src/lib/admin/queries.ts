@@ -311,3 +311,27 @@ export async function getAdminStats(): Promise<AdminStats> {
     todaysImageUsd: costs.image,
   };
 }
+
+export type DistributionChannel = {
+  key: "x" | "slack" | "discord" | "email-digest";
+  label: string;
+  envVar: string;
+  configured: boolean;
+};
+
+// Reports which distribution channels have credentials configured. Env
+// presence only — no DB call, no live API check. The agent worker reads
+// these same env vars at runtime; an unconfigured channel is a silent
+// no-op there.
+export function getDistributionStatus(): DistributionChannel[] {
+  const channels: Omit<DistributionChannel, "configured">[] = [
+    { key: "x", label: "X (Twitter)", envVar: "X_BEARER_TOKEN" },
+    { key: "slack", label: "Slack", envVar: "SLACK_WEBHOOK_URL" },
+    { key: "discord", label: "Discord", envVar: "DISCORD_WEBHOOK_URL" },
+    { key: "email-digest", label: "Email digest", envVar: "RESEND_API_KEY" },
+  ];
+  return channels.map((c) => ({
+    ...c,
+    configured: !!process.env[c.envVar],
+  }));
+}
