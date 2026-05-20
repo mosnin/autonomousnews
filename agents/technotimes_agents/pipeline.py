@@ -33,9 +33,13 @@ from .sources import (
     cluster_trends_by_topic,
     dedupe_trends,
     fetch_newsapi_top_headlines,
+    fetch_recent_documents,
     fetch_recent_filings,
+    fetch_recent_grants,
     fetch_recent_papers,
+    fetch_recent_releases,
     fetch_thenewsapi_top,
+    fetch_trending_repos,
 )
 from .taxonomy import (
     CATEGORIES,
@@ -94,9 +98,11 @@ subcategory from a fixed taxonomy. Avoid duplicates, sports scores without
 context, and headlines that are pure clickbait. Prefer stories of global
 significance.
 
-Primary sources (SEC filings, arXiv papers) take priority — pick at least 1
-per run when available. We are first-with-the-news there: those filings and
-papers reach us before the wire services rewrite them.
+Primary sources (SEC filings, arXiv papers, USPTO patents, Federal Register
+rules, regulator press releases, and notable open-source releases) take
+priority — pick at least 1 per run when available. We are first-with-the-news
+there: those filings and papers reach us before the wire services rewrite
+them.
 
 You MUST respond as valid JSON matching the schema the user supplies.
 """
@@ -235,13 +241,14 @@ BREAKING_WINDOW_MINUTES = 30
 
 
 async def _gather_raw_trends(cfg: Config, log: LogBuffer) -> list[Trend]:
-    """Fan out across all four source clients in parallel and merge results.
+    """Fan out across all source clients in parallel and merge results.
 
-    Two aggregator providers (newsapi, thenewsapi) and two PRIMARY sources
-    (SEC EDGAR filings, arXiv papers). Primary sources are upstream of the
-    aggregators — reaching them directly is how we break news rather than
-    rewrite it. Each client is independently fault-tolerant: a failure in
-    one provider never sinks the run.
+    Two aggregator providers (newsapi, thenewsapi) and six PRIMARY sources
+    (SEC EDGAR filings, arXiv papers, USPTO patent grants, Federal Register
+    rules, FTC/FCC/DOJ press releases, GitHub trending releases). Primary
+    sources are upstream of the aggregators — reaching them directly is how
+    we break news rather than rewrite it. Each client is independently
+    fault-tolerant: a failure in one provider never sinks the run.
     """
 
     async def _run(name: str, coro) -> list[Trend]:
@@ -260,9 +267,15 @@ async def _gather_raw_trends(cfg: Config, log: LogBuffer) -> list[Trend]:
     if cfg.thenewsapi_token:
         tasks.append(_run(
             "thenewsapi", fetch_thenewsapi_top(cfg.thenewsapi_token)))
-    # Primary sources need no API key — they are public endpoints.
+    # Primary sources need no API key — they are public endpoints. (USPTO
+    # and GitHub accept an optional key env var for a higher rate limit but
+    # work key-free.)
     tasks.append(_run("sec-edgar", fetch_recent_filings()))
     tasks.append(_run("arxiv", fetch_recent_papers()))
+    tasks.append(_run("uspto", fetch_recent_grants()))
+    tasks.append(_run("federal-register", fetch_recent_documents()))
+    tasks.append(_run("regulators", fetch_recent_releases()))
+    tasks.append(_run("github-trending", fetch_trending_repos()))
 
     results = await asyncio.gather(*tasks)
     trends: list[Trend] = []

@@ -1,9 +1,11 @@
 """News-source clients.
 
 This package fans out across two *aggregator* providers (newsapi.org,
-thenewsapi.com) and two *primary* sources (SEC EDGAR filings, arXiv papers).
-Primary sources are upstream of the aggregators — we reach them first, which
-is the entire point: first-with-the-news, not last-to-rewrite-it.
+thenewsapi.com) and six *primary* sources (SEC EDGAR filings, arXiv papers,
+USPTO patent grants, Federal Register rules, FTC/FCC/DOJ press releases, and
+high-velocity GitHub releases). Primary sources are upstream of the
+aggregators — we reach them first, which is the entire point:
+first-with-the-news, not last-to-rewrite-it.
 
 `Trend`, `Cluster`, and the dedupe/cluster helpers live here so every client
 module can import them without a cycle. The fetch functions are re-exported
@@ -17,9 +19,13 @@ from ._models import Cluster, ProviderKind, Trend
 # Re-export the per-provider fetch functions so callers can keep doing
 # `from .sources import fetch_newsapi_top_headlines, ...` unchanged.
 from .arxiv import ARXIV_CATEGORIES, fetch_recent_papers
+from .federal_register import FEDERAL_REGISTER_AGENCIES, fetch_recent_documents
+from .github_trending import fetch_trending_repos
 from .newsapi import fetch_newsapi_top_headlines
+from .regulators import fetch_recent_releases
 from .sec_edgar import TECH_CIKS, fetch_recent_filings
 from .thenewsapi import fetch_thenewsapi_top
+from .uspto import USPTO_CPC_PREFIXES, fetch_recent_grants
 
 __all__ = [
     "Trend",
@@ -30,10 +36,16 @@ __all__ = [
     "guess_category",
     "TECH_CIKS",
     "ARXIV_CATEGORIES",
+    "USPTO_CPC_PREFIXES",
+    "FEDERAL_REGISTER_AGENCIES",
     "fetch_newsapi_top_headlines",
     "fetch_thenewsapi_top",
     "fetch_recent_filings",
     "fetch_recent_papers",
+    "fetch_recent_grants",
+    "fetch_recent_documents",
+    "fetch_recent_releases",
+    "fetch_trending_repos",
 ]
 
 

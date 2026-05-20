@@ -10,7 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-ProviderKind = Literal["newsapi", "thenewsapi", "sec-edgar", "arxiv"]
+ProviderKind = Literal[
+    "newsapi", "thenewsapi", "sec-edgar", "arxiv",
+    "uspto", "federal-register", "regulator", "github",
+]
 
 
 @dataclass
@@ -20,7 +23,7 @@ class Trend:
     url: str | None
     image_url: str | None
     source: str  # publication name
-    provider: str  # 'newsapi' | 'thenewsapi' | 'sec-edgar' | 'arxiv'
+    provider: str  # 'newsapi' | 'sec-edgar' | 'arxiv' | 'uspto' | ...
     published_at: str | None
     raw: dict[str, Any]
     # Byline of the source article when the provider exposes it. Empty
@@ -31,7 +34,8 @@ class Trend:
     # `provider_kind` is the constrained enum the pipeline branches on.
     # Defaulted so existing Trend construction (and tests) don't break.
     provider_kind: ProviderKind = "newsapi"
-    # True for primary sources (SEC EDGAR, arXiv). These are upstream of the
+    # True for primary sources (SEC EDGAR, arXiv, USPTO, Federal Register,
+    # regulator press releases, GitHub trending). These are upstream of the
     # aggregators; a fresh primary trend in a cluster makes it "breaking".
     is_primary: bool = False
 
