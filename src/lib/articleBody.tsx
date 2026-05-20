@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { CATEGORIES } from "./taxonomy";
-import { AUTHORS } from "./authors";
 
 export type LinkTarget = {
   text: string;
@@ -11,9 +10,6 @@ export type LinkTarget = {
 
 function buildTargets(): LinkTarget[] {
   const targets: LinkTarget[] = [];
-  for (const a of AUTHORS) {
-    targets.push({ text: a.name, href: `/by/${a.slug}`, weight: a.name.length * 10 });
-  }
   for (const c of CATEGORIES) {
     for (const s of c.subcategories) {
       targets.push({

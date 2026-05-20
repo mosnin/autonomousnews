@@ -1,0 +1,16 @@
+# Techno Times — autonomous agent pipeline.
+# Installs the worker dependencies and runs the pipeline once on start.
+FROM python:3.11-slim
+
+WORKDIR /app/agents
+
+# Install dependencies first so this layer is cached across code changes.
+COPY agents/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the worker source.
+COPY agents/ ./
+
+# Run the pipeline a single time. The hourly schedule is owned by Modal in
+# production; this container is for a one-shot local/CI run.
+CMD ["python", "-m", "technotimes_agents.pipeline"]

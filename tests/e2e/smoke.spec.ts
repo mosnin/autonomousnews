@@ -29,15 +29,24 @@ test("custom landing: sports has Leagues strip", async ({ page }) => {
   await expect(page.locator("text=Motorsports")).toBeVisible();
 });
 
-test("custom landing: opinion has Columnists block", async ({ page }) => {
+test("custom landing: opinion renders the editorial board section", async ({ page }) => {
   await page.goto("/opinion");
-  await expect(page.locator("text=Columnists")).toBeVisible();
+  await expect(page.locator("text=From the Editorial Board")).toBeVisible();
 });
 
-test("author profile page renders", async ({ page }) => {
+test("legacy author URL permanently redirects to /about", async ({ page }) => {
   await page.goto("/by/mira-chen");
-  await expect(page.locator("h1", { hasText: "Mira Chen" })).toBeVisible();
-  await expect(page.locator("text=Senior Technology Correspondent")).toBeVisible();
+  await expect(page).toHaveURL(/\/about$/);
+});
+
+test("agents transparency page renders the explainer", async ({ page }) => {
+  await page.goto("/agents");
+  await expect(
+    page.locator("h1", { hasText: "How this newsroom works" })
+  ).toBeVisible();
+  await expect(
+    page.locator("text=researched and drafted by AI agents")
+  ).toBeVisible();
 });
 
 test("about-our-ai disclosure page is reachable", async ({ page }) => {

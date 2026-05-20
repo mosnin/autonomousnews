@@ -1,61 +1,32 @@
 import { describe, it, expect } from "vitest";
-import { AUTHORS, findAuthor, selectAuthorForTopic } from "@/lib/authors";
-import { CATEGORIES } from "@/lib/taxonomy";
+import { EDITOR, ARTICLE_BYLINE } from "@/lib/authors";
 
-describe("authors", () => {
-  it("roster has 15 unique slugs", () => {
-    expect(AUTHORS.length).toBe(15);
-    const slugs = AUTHORS.map((a) => a.slug);
-    expect(new Set(slugs).size).toBe(slugs.length);
+describe("editor masthead", () => {
+  it("EDITOR exposes the single-editor shape", () => {
+    expect(typeof EDITOR.name).toBe("string");
+    expect(typeof EDITOR.title).toBe("string");
+    expect(typeof EDITOR.bio).toBe("string");
+    expect(EDITOR.name.length).toBeGreaterThan(0);
+    expect(EDITOR.title.length).toBeGreaterThan(0);
+    expect(EDITOR.bio.length).toBeGreaterThan(0);
   });
 
-  it("each author has a populated joinedAt + initials + beat", () => {
-    for (const a of AUTHORS) {
-      expect(a.joinedAt).toMatch(/^\d{4}-\d{2}$/);
-      expect(a.initials).toMatch(/^[A-Z]{2,3}$/);
-      expect(a.beat.length).toBeGreaterThan(0);
+  it("social links are string-or-null (never undefined)", () => {
+    for (const link of [EDITOR.link_x, EDITOR.link_linkedin, EDITOR.link_web]) {
+      expect(link === null || typeof link === "string").toBe(true);
     }
   });
 
-  it("every author's beat references a real category", () => {
-    const known = new Set(CATEGORIES.map((c) => c.slug));
-    for (const a of AUTHORS) {
-      for (const b of a.beat) expect(known).toContain(b);
-    }
+  it("renders a neutral placeholder name when no env var is set", () => {
+    // No NEXT_PUBLIC_EDITOR_NAME in the test environment — the default
+    // must be a consented placeholder, never a real name or a TODO.
+    expect(EDITOR.name).toBe("Editor on Duty");
+    expect(EDITOR.name).not.toMatch(/todo/i);
   });
 
-  it("every author's subBeat references a real subcategory of that author's beat", () => {
-    const subsByCat = new Map(
-      CATEGORIES.map((c) => [c.slug, new Set(c.subcategories.map((s) => s.slug))])
+  it("ARTICLE_BYLINE credits the agents and the editor on duty", () => {
+    expect(ARTICLE_BYLINE).toBe(
+      `Reported by Techno Times Agents · Edited by ${EDITOR.name}`
     );
-    for (const a of AUTHORS) {
-      for (const sb of a.subBeat ?? []) {
-        const matched = a.beat.some((b) => subsByCat.get(b)?.has(sb));
-        expect(matched, `${a.slug} has subBeat ${sb} not in beats`).toBe(true);
-      }
-    }
-  });
-
-  it("findAuthor round-trips", () => {
-    expect(findAuthor("mira-chen")?.name).toBe("Mira Chen");
-    expect(findAuthor("not-a-person")).toBeUndefined();
-  });
-
-  describe("selectAuthorForTopic", () => {
-    it("prefers a sub-beat match over a category-only match", () => {
-      const a = selectAuthorForTopic("technology", "ai-and-ml");
-      expect(a.slug).toBe("mira-chen");
-    });
-
-    it("falls back to category match when no sub-beat hits", () => {
-      const a = selectAuthorForTopic("climate", null);
-      expect(a.slug).toBe("marcus-aoki");
-    });
-
-    it("falls back to opinion fallback if nothing matches", () => {
-      const a = selectAuthorForTopic("totally-unknown", "also-unknown");
-      // Elena Kovac is the documented fallback (last entry in the array).
-      expect(a.slug).toBe("elena-kovac");
-    });
   });
 });

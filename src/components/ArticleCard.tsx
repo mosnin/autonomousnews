@@ -4,6 +4,7 @@ import type { ArticleSummary } from "@/lib/articles";
 import { findCategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
 import { coverImageAlt } from "@/lib/imageAlt";
+import { ARTICLE_BYLINE } from "@/lib/authors";
 import LiveBadge from "./LiveBadge";
 import type { CSSProperties } from "react";
 
@@ -84,7 +85,7 @@ export default function ArticleCard({
             <p className="dek text-sm md:text-base md:line-clamp-2">{article.dek}</p>
           ) : null}
           <div className="byline mt-3 flex gap-3 uppercase tracking-kicker text-[11px]">
-            <span>By {article.author_name}</span>
+            <span>{ARTICLE_BYLINE}</span>
             {article.read_minutes ? <span>{article.read_minutes} min</span> : null}
           </div>
         </div>
@@ -132,7 +133,7 @@ export default function ArticleCard({
             <p className="dek text-lg md:text-2xl mb-4 leading-snug">{article.dek}</p>
           ) : null}
           <div className="byline mt-2 flex flex-wrap gap-3 uppercase tracking-kicker text-[11px]">
-            <span>By {article.author_name}</span>
+            <span>{ARTICLE_BYLINE}</span>
             {article.read_minutes ? <span>{article.read_minutes} min read</span> : null}
           </div>
         </div>
@@ -162,7 +163,7 @@ export default function ArticleCard({
           <p className="dek text-base md:text-lg">{article.dek}</p>
         ) : null}
         <div className="byline mt-3 flex gap-3 uppercase tracking-kicker text-[11px]">
-          <span>By {article.author_name}</span>
+          <span>{ARTICLE_BYLINE}</span>
           {article.read_minutes ? <span>{article.read_minutes} min read</span> : null}
         </div>
       </Link>
@@ -195,7 +196,7 @@ export default function ArticleCard({
         <p className="dek text-sm md:text-base line-clamp-3">{article.excerpt}</p>
       ) : null}
       <div className="byline mt-3 flex gap-3 uppercase tracking-kicker text-[11px]">
-        <span>By {article.author_name}</span>
+        <span>{ARTICLE_BYLINE}</span>
         {article.read_minutes ? <span>{article.read_minutes} min</span> : null}
       </div>
     </Link>

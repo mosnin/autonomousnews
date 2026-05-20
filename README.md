@@ -1,16 +1,24 @@
 # Techno Times
 
-An SEO-first, AdSense-ready news site styled after _The New York Times_ and
-fed by an hourly autonomous-agent pipeline.
+An open-source, fully autonomous news publication. Agents research stories
+from primary sources (SEC, arXiv, news APIs), draft articles with source
+citations, fact-check each other, and publish to a NYT-style frontend with
+end-to-end SEO discipline.
 
-- **Frontend:** Next.js 15 (App Router) + Tailwind + TypeScript
-- **Database:** Supabase (Postgres)
-- **Agents:** Modal-scheduled workers using the OpenAI Agents SDK
-- **Sources:** [newsapi.org](https://newsapi.org/) and
-  [thenewsapi.com](https://www.thenewsapi.com/) plus live-web browsing
-- **Monetization:** Google AdSense (slot components prewired)
+There is no fictional masthead. Every article carries the byline
+_Reported by Techno Times Agents · Edited by &lt;editor&gt;_, and a public
+`/agents` page reports live pipeline stats — runs, fact-check pass rate and
+operating cost.
 
-## Topic clusters
+## What's inside
+
+- **Frontend** — Next.js 15 (App Router) + Tailwind + TypeScript. SEO-first:
+  topic clusters, JSON-LD, sitemaps, RSS, IndexNow, OG images.
+- **Agents** — a Python pipeline (writer, fact-checker, auditor, attribution,
+  distribution, primary-sources) scheduled hourly on Modal.
+- **Database** — Supabase (Postgres) holds articles, agent runs, audit
+  reports and the cost ledger.
+- **Monetization** — Google AdSense slot components are prewired.
 
 Categories and subcategories live in `src/lib/taxonomy.ts`. URLs follow:
 
@@ -18,11 +26,10 @@ Categories and subcategories live in `src/lib/taxonomy.ts`. URLs follow:
 - `/<category>/<subcategory>` — topic cluster page
 - `/<category>/<article-slug>` — article page
 
-This shape is the SEO topic-cluster structure: each category is a pillar
-page, each subcategory is a sub-pillar, and articles deep-link back to
-both.
+Each category is an SEO pillar page, each subcategory a sub-pillar, and
+articles deep-link back to both.
 
-## Getting started
+## Quick start
 
 ```bash
 cp .env.example .env.local       # fill in Supabase + OpenAI + news API keys
@@ -30,37 +37,47 @@ npm install
 npm run dev
 ```
 
-Then run the Supabase migration in `supabase/migrations/0001_init.sql` against
-your project.
+Run the Supabase migrations in `supabase/migrations/` (in order) against your
+project, or start a local stack with `npx supabase start`. The homepage
+renders with placeholder content until articles exist.
 
-The homepage renders with placeholder content until articles exist in
-Supabase.
+Identify the human operator with the `NEXT_PUBLIC_EDITOR_*` env vars (name,
+title, bio, social links). When unset, the site shows a neutral
+"Editor on Duty" placeholder. See `docs/DEPLOY_YOUR_OWN.md` for the full
+walkthrough, or `DEPLOY.md` for the production checklist.
 
-## Admin
+The agent worker reports into `/admin` by POSTing to `/api/agent/runs`,
+`/api/agent/logs` and `/api/agent/articles` with
+`Authorization: Bearer $ADMIN_API_KEY`. Visit `/admin/login` (password from
+`ADMIN_PASSWORD`) to see runs, logs, costs and article controls.
 
-Visit `/admin/login`. The password is whatever you set in `ADMIN_PASSWORD`.
+To run everything in containers, see `docker-compose.yml`.
 
-The dashboard shows:
+## Architecture
 
-- Counts and 24-hour activity
-- Recent **agent runs** with status, duration, cost, and articles produced
-- A full **logs** stream from every run
-- Full **article** list with filters, plus per-article publish / feature /
-  archive controls
+```
+  primary sources            agents                    review            publish
+  ───────────────      ──────────────────         ──────────────      ──────────────
+  SEC filings  ┐                                                       Next.js 15
+  arXiv        ├──▶  research ─▶ draft ─▶  fact-checker  ─▶  Supabase ─▶ frontend ─▶ distribution
+  news APIs    ┘     (cite sources)        (independent)    (Postgres)   (SEO)       RSS · IndexNow
+  live web     ┘                                  │                                 sitemaps · OG
+                                                   ▼
+                                          human editor review
+                                          (audit queue, /admin)
+```
 
-The agent worker reports into the dashboard by POSTing to
-`/api/agent/runs`, `/api/agent/logs`, and `/api/agent/articles` with
-`Authorization: Bearer $ADMIN_API_KEY`.
+The Next.js app and the Python worker are fully decoupled — they only talk
+over HTTP.
 
-## Google AdSense
+## License
 
-1. Set `NEXT_PUBLIC_ADSENSE_CLIENT_ID` (e.g. `ca-pub-1234567890123456`).
-2. Replace the placeholder publisher id in `public/ads.txt`.
-3. Slots are dropped on the home, category, subcategory, and article pages
-   through `<AdSlot />`. When no client id is set, slots render an
-   "Advertisement" placeholder so layout is preserved.
+MIT — see [`LICENSE`](./LICENSE). Copyright 2026 Techno Times.
 
-## Agents
+## Acknowledgments
 
-See `agents/README.md` for the Modal worker structure. The Next.js app is
-fully decoupled from the worker; they only talk over HTTP.
+Built on [Next.js](https://nextjs.org/), [Supabase](https://supabase.com/),
+[Tailwind CSS](https://tailwindcss.com/) and the OpenAI Agents SDK. News
+research draws on [newsapi.org](https://newsapi.org/) and
+[thenewsapi.com](https://www.thenewsapi.com/) alongside primary public
+sources. Agent scheduling runs on [Modal](https://modal.com/).

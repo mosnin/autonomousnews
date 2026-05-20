@@ -1,0 +1,16 @@
+# Techno Times — Next.js frontend.
+# Builds the production app and serves it on port 3000.
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install dependencies first so this layer is cached across code changes.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy the rest of the source and build.
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+CMD ["npm", "run", "start"]

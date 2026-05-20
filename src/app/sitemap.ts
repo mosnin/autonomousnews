@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 import { CATEGORIES } from "@/lib/taxonomy";
-import { AUTHORS } from "@/lib/authors";
 import { SITE } from "@/lib/site";
 import {
   getLatestArticles,
@@ -14,7 +13,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticUrls: MetadataRoute.Sitemap = [
     { url: `${base}/`, lastModified: now, changeFrequency: "hourly", priority: 1 },
+    { url: `${base}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
     { url: `${base}/about-our-ai`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${base}/agents`, lastModified: now, changeFrequency: "hourly", priority: 0.5 },
     { url: `${base}/feed.xml`, lastModified: now, changeFrequency: "hourly", priority: 0.5 },
   ];
 
@@ -54,13 +55,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   ]);
 
-  const authorUrls: MetadataRoute.Sitemap = AUTHORS.map((a) => ({
-    url: `${base}/by/${a.slug}`,
-    lastModified: now,
-    changeFrequency: "daily" as const,
-    priority: 0.5,
-  }));
-
   const articleUrls: MetadataRoute.Sitemap = articles.map((a) => ({
     url: `${base}/${a.category_slug}/${a.slug}`,
     lastModified: a.published_at ? new Date(a.published_at) : now,
@@ -68,5 +62,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticUrls, ...categoryUrls, ...authorUrls, ...articleUrls];
+  return [...staticUrls, ...categoryUrls, ...articleUrls];
 }

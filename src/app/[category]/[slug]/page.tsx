@@ -28,9 +28,8 @@ import NewsletterSignup from "@/components/NewsletterSignup";
 import TableOfContents from "@/components/TableOfContents";
 import ArticleFAQ from "@/components/ArticleFAQ";
 import { SITE } from "@/lib/site";
-import { findAuthor } from "@/lib/authors";
+import { EDITOR, ARTICLE_BYLINE } from "@/lib/authors";
 import { renderArticleBody, extractChapters } from "@/lib/articleBody";
-import { sectionTextContrast } from "@/lib/sectionColors";
 import { breadcrumbListLd } from "@/lib/jsonld";
 import { coverImageAlt } from "@/lib/imageAlt";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -91,7 +90,7 @@ export async function generateMetadata({
       url: `${SITE.url}/${article.category_slug}/${article.slug}`,
       publishedTime: article.published_at ?? undefined,
       modifiedTime: article.updated_at,
-      authors: [article.author_name],
+      authors: [SITE.name],
       images: article.cover_image_url ? [article.cover_image_url] : undefined,
     },
   };
@@ -158,7 +157,7 @@ export default async function CategorySlugPage({
     image: article.cover_image_url ? [article.cover_image_url] : undefined,
     datePublished: article.published_at,
     dateModified: article.updated_at,
-    author: [{ "@type": "Person", name: article.author_name }],
+    author: { "@type": "Organization", name: SITE.name, url: SITE.url },
     publisher: {
       "@type": "Organization",
       name: SITE.name,
@@ -224,9 +223,7 @@ export default async function CategorySlugPage({
           <p className="dek text-lg md:text-2xl leading-snug">{article.dek}</p>
         ) : null}
         <div className="byline mt-6 flex flex-wrap gap-x-4 gap-y-1 uppercase tracking-kicker text-[11px]">
-          <Link href={`/by/${article.author_slug}`} className="hover:text-ink text-ink">
-            By {article.author_name}
-          </Link>
+          <span className="text-ink">{ARTICLE_BYLINE}</span>
           {article.published_at ? (
             <time dateTime={article.published_at}>
               {new Date(article.published_at).toLocaleDateString("en-US", {
@@ -312,7 +309,6 @@ export default async function CategorySlugPage({
               article.subcategory_slug
                 ? `/${article.category_slug}/${article.subcategory_slug}`
                 : null,
-              `/by/${article.author_slug}`,
             ].filter((v): v is string => !!v)
           ),
           maxLinks: 6,
@@ -345,31 +341,18 @@ export default async function CategorySlugPage({
           subcategorySlug={article.subcategory_slug}
           aiDisclosed={article.ai_disclosed}
         />
-        {(() => {
-          const author = findAuthor(article.author_slug);
-          if (!author) return null;
-          return (
-            <aside className="mt-10 border-t border-rule pt-6 flex gap-4 items-start">
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center font-bold font-sans flex-shrink-0"
-                style={{
-                  background: "var(--section)",
-                  color: `rgb(var(--${sectionTextContrast(article.category_slug)}))`,
-                }}
-              >
-                {author.initials}
-              </div>
-              <div>
-                <div className="kicker mb-1">About the writer</div>
-                <Link href={`/by/${author.slug}`} className="headline text-lg hover:underline">
-                  {author.name}
-                </Link>
-                <div className="byline">{author.title}</div>
-                <p className="dek mt-2 text-sm">{author.bio}</p>
-              </div>
-            </aside>
-          );
-        })()}
+        <aside className="mt-10 border-t border-rule pt-6">
+          <div className="kicker mb-2">How this story was made</div>
+          <p className="dek text-sm">
+            Researched and drafted by Techno Times AI agents from primary
+            sources, fact-checked by an independent AI, and reviewed before
+            publication by {EDITOR.name}, {EDITOR.title}.{" "}
+            <Link href="/agents" className="text-accent underline">
+              See how the newsroom works
+            </Link>
+            .
+          </p>
+        </aside>
         <div className="mt-12">
           <NewsletterSignup source="article-inline" />
         </div>

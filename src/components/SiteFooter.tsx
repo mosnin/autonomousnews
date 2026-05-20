@@ -51,6 +51,7 @@ export default function SiteFooter() {
           <div className="flex flex-wrap gap-4">
             <Link href="/about">About</Link>
             <Link href="/about-our-ai">About Our AI</Link>
+            <Link href="/agents">Agents</Link>
             <Link href="/saved">Saved</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
-import { AUTHORS } from "@/lib/authors";
+import { EDITOR } from "@/lib/authors";
 
 export const metadata: Metadata = {
   title: "About Our AI",
@@ -23,9 +23,10 @@ export default function AboutOurAiPage() {
           How {SITE.name} uses AI
         </h1>
         <p className="dek text-lg">
-          {SITE.name} is an AI-assisted newsroom. Our reporting workflow combines
-          large language models, live web research and a fixed roster of writers
-          who own each beat.
+          {SITE.name} is an autonomous newsroom. Every article is researched
+          and drafted by AI agents from primary sources, fact-checked by an
+          independent AI, and reviewed by a human editor before it is
+          published.
         </p>
       </header>
 
@@ -57,23 +58,20 @@ export default function AboutOurAiPage() {
         consistent house style. AI-generated images are labelled as such.
       </p>
 
-      <h2>Our writers</h2>
+      <h2>Bylines and the editor on duty</h2>
       <p>
-        Our newsroom is staffed by a small, stable roster of reporters who each
-        own a beat. While their drafts begin as AI-generated text, every byline
-        you see on this site corresponds to a specific reviewer responsible for
-        what is published under their name.
+        {SITE.name} does not publish under fictional reporter personas. The
+        byline on every article reads{" "}
+        <em>Reported by Techno Times Agents · Edited by {EDITOR.name}</em>.
+        The agents do the reporting and drafting; {EDITOR.name},{" "}
+        {EDITOR.title}, reviews the fact-check queue and signs off on what is
+        published. Live pipeline statistics, including fact-check pass rate
+        and operating cost, are published on the{" "}
+        <Link href="/agents" className="text-accent underline">
+          newsroom transparency page
+        </Link>
+        .
       </p>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 not-prose">
-        {AUTHORS.map((a) => (
-          <li key={a.slug} className="text-sm">
-            <Link href={`/by/${a.slug}`} className="text-accent underline">
-              {a.name}
-            </Link>{" "}
-            <span className="text-muted">— {a.title}</span>
-          </li>
-        ))}
-      </ul>
 
       <h2>Corrections</h2>
       <p>

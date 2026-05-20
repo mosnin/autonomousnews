@@ -1,0 +1,33 @@
+# Techno Times — local container stack.
+#
+# Supabase is NOT containerized here. Run it separately with the Supabase
+# CLI before bringing this stack up:
+#
+#   npx supabase start
+#
+# That gives you a local Postgres + API. Copy its URL and keys into
+# .env.local, then `docker compose up`.
+#
+#   web     — the Next.js frontend on http://localhost:3000
+#   agents  — runs the agent pipeline once, then exits
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    restart: unless-stopped
+
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+    env_file:
+      - .env.local
+    # One-shot: runs the pipeline once and exits. Re-run with
+    # `docker compose run --rm agents`.
+    restart: "no"
