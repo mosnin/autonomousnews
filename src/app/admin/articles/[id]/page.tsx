@@ -57,7 +57,7 @@ export default async function AdminArticleDetail({
           value={`${article.category_slug}/${article.subcategory_slug ?? ""}`}
           mono
         />
-        <Field label="Author" value={article.author_name} />
+        <Field label="Byline" value={article.author_name} />
         <Field label="Read time" value={`${article.read_minutes} min`} />
         <Field label="Created" value={formatDateTime(article.created_at)} />
         <Field label="Updated" value={formatDateTime(article.updated_at)} />

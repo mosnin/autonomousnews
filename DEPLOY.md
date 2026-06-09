@@ -193,3 +193,26 @@ first cron tick. Re-running the script triggers the living-update path
   from `/about-our-ai`.
 - Run a `modal run modal_app.py` at least twice before the real 15-minute
   schedule kicks in, to catch config issues without burning budget.
+
+## Distribution & primary-source keys (optional)
+
+All optional — every feature below no-ops gracefully when its key is unset.
+
+- **`X_BEARER_TOKEN`** — enables the X (Twitter) auto-poster: every fresh
+  article is tweeted within seconds of publish. Create an app at
+  developer.x.com and use the OAuth 2.0 bearer token. Skipped = no tweets.
+- **`SLACK_WEBHOOK_URL`** / **`DISCORD_WEBHOOK_URL`** — push every fresh
+  article into a channel. Create an incoming webhook in your workspace /
+  server settings. Skipped = no posts.
+- **`RESEND_API_KEY`** — enables the daily 13:00 UTC email digest to all
+  confirmed newsletter subscribers. Free key at resend.com. Skipped =
+  digest cron exits cleanly without sending.
+- **`PATENTSVIEW_API_KEY`** — enables USPTO patent ingestion as a primary
+  source. Free key at patentsview.org. Skipped = the patents source is
+  excluded; the other seven feeds carry the run.
+- **`GITHUB_TOKEN`** — raises the rate limit for the GitHub-trending
+  source. Any classic token with no scopes works. Skipped = best-effort
+  unauthenticated requests.
+- **`CHECKER_MODEL`** — the fact-checker model (default `gpt-5-mini`).
+  Keep it a different family from `WRITER_MODEL`; the checker exists to
+  catch the writer's correlated errors.

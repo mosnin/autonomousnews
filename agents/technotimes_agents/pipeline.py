@@ -43,9 +43,9 @@ from .sources import (
 )
 from .taxonomy import (
     CATEGORIES,
-    Author,
+    ORG_AUTHOR_NAME,
+    ORG_AUTHOR_SLUG,
     find_category,
-    select_author,
 )
 
 
@@ -116,7 +116,10 @@ POWER_WORDS = [
 ]
 
 
-WRITER_SYSTEM = """You are {author_name}, {author_title} at Techno Times.
+WRITER_SYSTEM = """You are a reporter for Techno Times, a fully autonomous news publication.
+Articles you produce will be published under the organization byline
+"Reported by Techno Times Agents" — there is no human writer to roleplay
+as. Write in the neutral, NYT-restrained voice of a wire-service reporter.
 
 You are a news REPORTER, not a creative writer.
 
@@ -489,17 +492,7 @@ async def write_article(
     cluster_sources: list[Trend] = (
         list(cluster.sources) if cluster and cluster.sources else [trend]
     )
-    author: Author = select_author(
-        selection["category_slug"], selection["subcategory_slug"]
-    )
-
     if existing:
-        # Living-article update path — anchor the author to whoever already
-        # owns this story so bylines stay stable.
-        author = next(
-            (a for a in (author,) if a.slug == existing.get("author_slug")),
-            author,
-        )
         existing_body = (existing.get("body") or "")[:6000]
         sources_block_lines: list[str] = []
         for i, src in enumerate(cluster_sources, start=1):
@@ -567,7 +560,6 @@ Respond with JSON (same schema as a fresh article):
 }}
 """
         system_msg = WRITER_UPDATE_SYSTEM.format(
-            author_name=author.name, author_title=author.title,
             power_words=", ".join(POWER_WORDS),
         )
     else:
@@ -633,7 +625,6 @@ Respond with JSON:
 }}
 """
         system_msg = WRITER_SYSTEM.format(
-            author_name=author.name, author_title=author.title,
             power_words=", ".join(POWER_WORDS),
         )
 
@@ -739,8 +730,8 @@ Respond with JSON:
         "category_slug": selection["category_slug"],
         "subcategory_slug": selection["subcategory_slug"],
         "tags": data.get("tags", []),
-        "author_name": author.name,
-        "author_slug": author.slug,
+        "author_name": ORG_AUTHOR_NAME,
+        "author_slug": ORG_AUTHOR_SLUG,
         "source_urls": cluster_urls or ([trend.url] if trend.url else []),
         "sources_used": sources_used,
         "_allowed_urls": list(allowed_url_set),  # consumed by validator step

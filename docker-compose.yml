@@ -19,7 +19,8 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - .env.local
+      - path: .env.local
+        required: false
     restart: unless-stopped
 
   agents:
@@ -27,7 +28,8 @@ services:
       context: .
       dockerfile: Dockerfile.agents
     env_file:
-      - .env.local
+      - path: .env.local
+        required: false
     # One-shot: runs the pipeline once and exits. Re-run with
     # `docker compose run --rm agents`.
     restart: "no"

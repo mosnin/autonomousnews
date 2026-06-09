@@ -6,11 +6,12 @@ src/lib/taxonomy.ts and src/lib/authors.ts.
 from __future__ import annotations
 
 from technotimes_agents.taxonomy import (
-    AUTHORS,
     CATEGORIES,
+    ORG_AUTHOR_NAME,
+    ORG_AUTHOR_SLUG,
+    ORG_AUTHOR_TITLE,
     all_pairs,
     find_category,
-    select_author,
 )
 
 
@@ -41,27 +42,14 @@ def test_all_pairs_covers_every_pillar_and_sub():
     assert len(pairs) == expected
 
 
-def test_authors_have_unique_slugs():
-    assert len({a.slug for a in AUTHORS}) == len(AUTHORS)
+def test_org_byline_constants():
+    """No fictional personas: a single org byline ships on every article."""
+    assert ORG_AUTHOR_NAME == "Techno Times Agents"
+    assert ORG_AUTHOR_SLUG == "techno-times-agents"
+    assert ORG_AUTHOR_TITLE
 
 
-def test_authors_beat_references_real_categories():
-    known = {c.slug for c in CATEGORIES}
-    for a in AUTHORS:
-        for b in a.beat:
-            assert b in known
-
-
-def test_select_author_prefers_sub_beat():
-    a = select_author("technology", "ai-and-ml")
-    assert a.slug == "mira-chen"
-
-
-def test_select_author_falls_back_to_category():
-    a = select_author("climate", None)
-    assert a.slug == "marcus-aoki"
-
-
-def test_select_author_final_fallback():
-    a = select_author("nothing", "nothing")
-    assert a.slug == "elena-kovac"
+def test_no_fictional_roster_remains():
+    import technotimes_agents.taxonomy as tax
+    assert not hasattr(tax, "AUTHORS")
+    assert not hasattr(tax, "select_author")

@@ -15,7 +15,9 @@ operating cost.
 - **Frontend** — Next.js 15 (App Router) + Tailwind + TypeScript. SEO-first:
   topic clusters, JSON-LD, sitemaps, RSS, IndexNow, OG images.
 - **Agents** — a Python pipeline (writer, fact-checker, auditor, attribution,
-  distribution, primary-sources) scheduled hourly on Modal.
+  distribution, primary-sources) scheduled on Modal: the news pipeline
+  every 15 minutes, the pillar refresh weekly, the auditor and email digest
+  daily.
 - **Database** — Supabase (Postgres) holds articles, agent runs, audit
   reports and the cost ledger.
 - **Monetization** — Google AdSense slot components are prewired.
@@ -58,13 +60,13 @@ To run everything in containers, see `docker-compose.yml`.
 ```
   primary sources            agents                    review            publish
   ───────────────      ──────────────────         ──────────────      ──────────────
-  SEC filings  ┐                                                       Next.js 15
-  arXiv        ├──▶  research ─▶ draft ─▶  fact-checker  ─▶  Supabase ─▶ frontend ─▶ distribution
-  news APIs    ┘     (cite sources)        (independent)    (Postgres)   (SEO)       RSS · IndexNow
-  live web     ┘                                  │                                 sitemaps · OG
-                                                   ▼
-                                          human editor review
-                                          (audit queue, /admin)
+  SEC · arXiv      ┐                                                   Next.js 15
+  USPTO · Fed Reg  ├──▶ research ─▶ draft ─▶ fact-checker ─▶ Supabase ─▶ frontend ─▶ distribution
+  FTC/FCC/DOJ      │    (cite sources)      (independent)   (Postgres)   (SEO)       X · Slack · email
+  GitHub trending  │                               │                                 RSS · IndexNow
+  news APIs        ┘                               ▼                                 sitemaps · OG
+                                       human editor review
+                                       (post-publish audit queue, /admin)
 ```
 
 The Next.js app and the Python worker are fully decoupled — they only talk
@@ -77,7 +79,7 @@ MIT — see [`LICENSE`](./LICENSE). Copyright 2026 Techno Times.
 ## Acknowledgments
 
 Built on [Next.js](https://nextjs.org/), [Supabase](https://supabase.com/),
-[Tailwind CSS](https://tailwindcss.com/) and the OpenAI Agents SDK. News
+[Tailwind CSS](https://tailwindcss.com/) and the OpenAI API. News
 research draws on [newsapi.org](https://newsapi.org/) and
 [thenewsapi.com](https://www.thenewsapi.com/) alongside primary public
 sources. Agent scheduling runs on [Modal](https://modal.com/).

@@ -3,6 +3,7 @@ import { getArticleBySlug } from "@/lib/articles";
 import { findCategory, findSubcategory } from "@/lib/taxonomy";
 import { sectionColor } from "@/lib/sectionColors";
 import { SITE } from "@/lib/site";
+import { ORG_BYLINE } from "@/lib/authors";
 import { loadPlayfairFonts } from "@/lib/ogFont";
 
 export const runtime = "nodejs";
@@ -130,7 +131,7 @@ export default async function ArticleOg({
   const titleFontSize =
     title.length > 90 ? 64 : title.length > 60 ? 76 : title.length > 36 ? 88 : 104;
 
-  const author = article.author_name?.trim() || SITE.name;
+  const author = ORG_BYLINE;
   const readMinutes =
     typeof article.read_minutes === "number" && article.read_minutes > 0
       ? `${article.read_minutes} min read`

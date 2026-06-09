@@ -67,3 +67,17 @@ public at `/agents`.
 `docker compose up` builds and runs the web app; `docker compose run --rm
 agents` runs the pipeline once. Keep running `npx supabase start` separately —
 Supabase is not containerized here.
+
+## Distribution & primary-source keys (optional)
+
+Everything below is optional and no-ops when unset:
+
+| Var | Enables | Get it at |
+|---|---|---|
+| `X_BEARER_TOKEN` | Auto-tweet each article | developer.x.com |
+| `SLACK_WEBHOOK_URL` | Slack post per article | workspace webhook settings |
+| `DISCORD_WEBHOOK_URL` | Discord post per article | server webhook settings |
+| `RESEND_API_KEY` | Daily email digest | resend.com |
+| `PATENTSVIEW_API_KEY` | USPTO patents as a source | patentsview.org |
+| `GITHUB_TOKEN` | Higher GitHub rate limit | github.com/settings/tokens |
+| `CHECKER_MODEL` | Fact-checker model (keep ≠ writer) | default `gpt-5-mini` |

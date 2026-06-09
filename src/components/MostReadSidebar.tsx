@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ArticleSummary } from "@/lib/articles";
 import { sectionColor } from "@/lib/sectionColors";
+import { ARTICLE_BYLINE } from "@/lib/authors";
 
 export default function MostReadSidebar({
   articles,
@@ -30,11 +31,9 @@ export default function MostReadSidebar({
                 <h3 className="headline text-base md:text-lg leading-tight">
                   {a.title}
                 </h3>
-                {a.author_name ? (
-                  <div className="byline mt-1.5 text-[11px] uppercase tracking-kicker">
-                    By {a.author_name}
-                  </div>
-                ) : null}
+                <div className="byline mt-1.5 text-[11px] uppercase tracking-kicker">
+                  {ARTICLE_BYLINE}
+                </div>
               </Link>
             </li>
           );

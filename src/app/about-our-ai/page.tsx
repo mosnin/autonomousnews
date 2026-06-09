@@ -64,8 +64,8 @@ export default function AboutOurAiPage() {
         byline on every article reads{" "}
         <em>Reported by Techno Times Agents · Edited by {EDITOR.name}</em>.
         The agents do the reporting and drafting; {EDITOR.name},{" "}
-        {EDITOR.title}, reviews the fact-check queue and signs off on what is
-        published. Live pipeline statistics, including fact-check pass rate
+        {EDITOR.title}, reviews the post-publish audit queue and decides which
+        articles need corrections or retractions. Live pipeline statistics, including fact-check pass rate
         and operating cost, are published on the{" "}
         <Link href="/agents" className="text-accent underline">
           newsroom transparency page
