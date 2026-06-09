@@ -14,10 +14,9 @@ import { PLACEHOLDER_ARTICLES } from "@/lib/placeholder";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/AdSlot";
 import ArticleDisclaimer from "@/components/ArticleDisclaimer";
-import ScrollProgressBar from "@/components/ScrollProgressBar";
-import ChapterDots from "@/components/ChapterDots";
 import SectionStyle from "@/components/SectionStyle";
 import ArticleToolbar from "@/components/ArticleToolbar";
+import ArticleReactions from "@/components/ArticleReactions";
 import ViewPing from "@/components/ViewPing";
 import TopicChips from "@/components/TopicChips";
 import SourcesBlock from "@/components/SourcesBlock";
@@ -190,8 +189,6 @@ export default async function CategorySlugPage({
 
   return (
     <SectionStyle as="article" slug={article.category_slug} className="pt-6 md:pt-10 pb-12">
-      <ScrollProgressBar />
-      <ChapterDots chapters={chapters} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
@@ -292,8 +289,6 @@ export default async function CategorySlugPage({
           articleId={article.id}
           title={article.title}
           url={articleUrl}
-          initialUp={reactions.up}
-          initialDown={reactions.down}
         />
         <TableOfContents
           chapters={chapters}
@@ -325,6 +320,11 @@ export default async function CategorySlugPage({
       </div>
 
       <div className="max-w-prose mx-auto px-4">
+        <ArticleReactions
+          articleId={article.id}
+          initialUp={reactions.up}
+          initialDown={reactions.down}
+        />
         <ArticleFAQ items={article.faq ?? []} />
         <SourcesBlock
           urls={article.source_urls ?? []}

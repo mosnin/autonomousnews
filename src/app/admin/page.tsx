@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin/queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import StatusPill from "@/components/admin/StatusPill";
+import HealthStrip from "@/components/admin/HealthStrip";
 import { formatDistanceToNow } from "@/lib/admin/format";
 import { DAILY_BUDGET_USD } from "@/lib/site";
 
@@ -42,6 +43,8 @@ export default async function AdminOverview() {
           </button>
         </form>
       </div>
+
+      <HealthStrip />
 
       {!supabaseConfigured ? (
         <div className="border border-yellow-400 bg-yellow-50 px-4 py-3 text-sm">
